@@ -81,7 +81,6 @@
   <ItemGroup>
     <Compile Include="MovementPlusPlugin.cs" />
     <Compile Include="Patches\BoostAbility.cs" />
-    <Compile Include="Patches\GrindAbilityOLD.cs" />
     <Compile Include="Patches\GrindAbility.cs" />
     <Compile Include="Patches\GroundTrickAbility.cs" />
     <Compile Include="Patches\AirDashAbility.cs" />

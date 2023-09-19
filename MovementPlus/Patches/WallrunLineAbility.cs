@@ -31,9 +31,9 @@ namespace MovementPlus.Patches
         [HarmonyPostfix]
         private static void WallrunLineAbility_Jump_Postfix(WallrunLineAbility __instance)
         {
-            if (__instance.p.abilityTimer <= MovementPlusPlugin.wallFrameBoostGrace.Value)
+            if (__instance.p.abilityTimer <= MovementPlusPlugin.wallFrameboostGrace.Value && MovementPlusPlugin.wallFrameboostEnabled.Value)
             {
-                __instance.p.SetForwardSpeed(__instance.p.GetForwardSpeed() + MovementPlusPlugin.wallFrameBoostAmount.Value);
+                __instance.p.SetForwardSpeed(__instance.p.GetForwardSpeed() + MovementPlusPlugin.wallFrameboostAmount.Value);
                 __instance.p.DoTrick(Player.TrickType.WALLRUN, "Frameboost", 0);
             }
         }

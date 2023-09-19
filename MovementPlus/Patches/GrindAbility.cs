@@ -9,7 +9,7 @@ using BepInEx;
 
 namespace MovementPlus.Patches
 {
-    public class GrindAbilityPatchNEW
+    public class GrindAbilityPatch
     {
 
 
@@ -24,10 +24,9 @@ namespace MovementPlus.Patches
         [HarmonyPostfix]
         private static void GrindAbility_Init_Postfix(GrindAbility __instance)
         {
-            __instance.grindDeccAboveNormal = 0f;
-            __instance.grindDeccBelowNormal = 0f;
+            __instance.grindDeccAboveNormal = MovementPlusPlugin.railDecc.Value;
+            __instance.grindDeccBelowNormal = MovementPlusPlugin.railDecc.Value;
             defaultCornerBoost = __instance.cornerBoost;
-            
         }
 
         [HarmonyPatch(typeof(GrindAbility), nameof(GrindAbility.OnStartAbility))]
@@ -195,7 +194,7 @@ namespace MovementPlus.Patches
             }
             __instance.customVelocity = (vector - __instance.p.tf.position) * 60f;
             __instance.p.lastElevationForSlideBoost = vector.y;
-            if (__instance.p.jumpButtonNew /*&& (__instance.p.isAI || __instance.trickTimer < __instance.reTrickMargin)*/)
+            if (__instance.p.jumpButtonNew)
             {
                 
                 float num5 = Vector3.Dot(__instance.p.tf.up, Vector3.up);
@@ -243,9 +242,9 @@ namespace MovementPlus.Patches
                 float num3 = __instance.p.jumpSpeed + __instance.p.bonusJumpSpeedGrind;
                 float num = (Vector3.Dot(up, Vector3.up) > -0.1f) ? (num3 * num2) : (-__instance.p.jumpSpeed * 0.5f);
                 float d = Mathf.Min(__instance.speed, __instance.p.boostSpeed);
-                if (__instance.p.abilityTimer <= MovementPlusPlugin.railFrameBoostGrace.Value)
+                if (__instance.p.abilityTimer <= MovementPlusPlugin.railFrameboostGrace.Value && MovementPlusPlugin.railFrameboostEnabled.Value)
                 {
-                    d = Mathf.Max(__instance.speed, __instance.p.GetForwardSpeed() + MovementPlusPlugin.railFrameBoostAmount.Value);
+                    d = Mathf.Max(__instance.speed, __instance.p.GetForwardSpeed() + MovementPlusPlugin.railFrameboostAmount.Value);
                     __instance.p.DoTrick(Player.TrickType.AIR, "Frameboost", 0);
                 }    
                 if (__instance.p.boosting)
@@ -306,20 +305,21 @@ namespace MovementPlus.Patches
             {
                 if (flag && __instance.lastPath.hardCornerBoostsAllowed)
                 {
-
-
                     __instance.p.StartScreenShake(ScreenShakeType.LIGHT, 0.2f, false);
                     __instance.p.AudioManager.PlaySfxGameplay(global::Reptile.SfxCollectionID.GenericMovementSfx, global::Reptile.AudioClipID.singleBoost, __instance.p.playerOneShotAudioSource, 0f);
                     __instance.p.ringParticles.Emit(1);
-                    __instance.speed = Mathf.Max(__instance.p.stats.grindSpeed + __instance.cornerBoost, __instance.p.GetForwardSpeed() + 2f);
+                    if (__instance.p.GetTotalSpeed() + MovementPlusPlugin.railHardAmount.Value > MovementPlusPlugin.railHardCap.Value)
+                    {
+                        __instance.p.HardCornerGrindLine(__instance.nextNode);
+                        return false;
+                    }
+                    __instance.speed = Mathf.Max(__instance.p.stats.grindSpeed + __instance.cornerBoost, __instance.p.GetTotalSpeed() + MovementPlusPlugin.railHardAmount.Value);
                     __instance.p.HardCornerGrindLine(__instance.nextNode);
                     return false;
                 }
                 if (__instance.lastPath.softCornerBoostsAllowed)
                 {
                     __instance.softCornerBoost = false;
-                    //__instance.p.SetForwardSpeed(__instance.p.GetForwardSpeed());
-                    //__instance.p.DoTrick(Player.TrickType.SOFT_CORNER, "Corner", 0);
                 }
             }
             return false;
@@ -343,12 +343,10 @@ namespace MovementPlus.Patches
                 {
                     __instance.speed = (__instance.speedTarget = __instance.p.boostSpeed);
                 }
-                //__instance.speed = (__instance.speedTarget = Mathf.Max(__instance.p.boostSpeed, __instance.p.GetForwardSpeed()));
                 return false;
             }
             if (__instance.softCornerBoost)
             {
-                //__instance.speedTarget = Mathf.Max(__instance.p.boostSpeed, __instance.p.GetTotalSpeed());
                 if (__instance.timeSinceLastNode > 1f)
                 {
                     __instance.softCornerBoost = false;

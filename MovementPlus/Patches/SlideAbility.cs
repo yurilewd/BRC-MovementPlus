@@ -11,8 +11,8 @@ namespace MovementPlus.Patches
         [HarmonyPostfix]
         private static void SlideAbility_FixedUpdateAbility_Postfix(SlideAbility __instance)
         {
-            __instance.superSpeed = Mathf.Max(MovementPlusPlugin.superSlideCap.Value, __instance.p.GetForwardSpeed() + MovementPlusPlugin.superSlideIncreaseOverTime.Value);
-            __instance.slopeSlideSpeed = Mathf.Max(MovementPlusPlugin.superSlideCap.Value, __instance.p.GetForwardSpeed() + MovementPlusPlugin.superSlideIncreaseOverTime.Value);
+            __instance.superSpeed = Mathf.Max(MovementPlusPlugin.superSlideSpeed.Value, __instance.p.GetForwardSpeed() + MovementPlusPlugin.superSlideIncrease.Value);
+            __instance.slopeSlideSpeed = Mathf.Max(MovementPlusPlugin.superSlideSpeed.Value, __instance.p.GetForwardSpeed() + MovementPlusPlugin.superSlideIncrease.Value);
         }
     }
 }

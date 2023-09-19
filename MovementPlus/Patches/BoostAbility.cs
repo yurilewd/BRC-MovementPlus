@@ -23,25 +23,24 @@ namespace MovementPlus.Patches
         [HarmonyPostfix]
         private static void BoostAbility_FixedUpdateAbility_Postfix(BoostAbility __instance)
         {
-
-            if (__instance.state == BoostAbility.State.START_BOOST)
+            if (MovementPlusPlugin.boostChangeEnabled.Value)
             {
-                if (__instance.p.ability == __instance.p.grindAbility)
+                if (__instance.state == BoostAbility.State.START_BOOST)
                 {
-                    __instance.p.normalBoostSpeed = Mathf.Max(defaultBoostSpeed + 5f, __instance.p.GetForwardSpeed() + 5f);
-                }    
+                    if (__instance.p.ability == __instance.p.grindAbility)
+                    {
+                        __instance.p.normalBoostSpeed = Mathf.Max(defaultBoostSpeed + 5f, __instance.p.GetForwardSpeed() + 5f);
+                    }
+                    else
+                    {
+                        __instance.p.normalBoostSpeed = Mathf.Max(defaultBoostSpeed + 5f, __instance.p.GetTotalSpeed() + 5f);
+                    }
+                }
                 else
                 {
-                    __instance.p.normalBoostSpeed = Mathf.Max(defaultBoostSpeed + 5f, __instance.p.GetTotalSpeed() + 5f);
+                    __instance.p.normalBoostSpeed = __instance.p.GetTotalSpeed() + 0.2f;
                 }
-                
-            }
-            else
-            {
-                __instance.p.normalBoostSpeed = __instance.p.GetTotalSpeed() + 0.2f;
             }
         }
-
-
     }
 }

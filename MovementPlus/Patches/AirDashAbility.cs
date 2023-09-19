@@ -8,12 +8,6 @@ namespace MovementPlus.Patches
 {
     internal static class AirDashAbilityPatch
     {
-        /*[HarmonyPatch(typeof(AirDashAbility), nameof(AirDashAbility.OnStartAbility))]
-        [HarmonyPrefix]
-        private static void AirDashAbility_onStartAbility_Prefix(AirDashAbility __instance)
-        {
-            __instance.airDashStartSpeed = __instance.p.GetForwardSpeed();
-        }*/
 
         [HarmonyPatch(typeof(AirDashAbility), nameof(AirDashAbility.OnStartAbility))]
         [HarmonyPrefix]
@@ -47,7 +41,7 @@ namespace MovementPlus.Patches
             if (__instance.p.GetFlatVelocity().magnitude > __instance.airDashStartSpeed)
             {
                 float num = Vector3.Dot(vector, __instance.p.GetFlatVelocity().normalized);
-                num = MovementPlusPlugin.remap(num, -1f, 1f, MovementPlusPlugin.airDashRetainedSpeed.Value, 1f);
+                num = MovementPlusPlugin.remap(num, -1f, 1f, MovementPlusPlugin.airDashSpeed.Value, 1f);
                 if (num < 0f)
                 {
                     num = 0f;

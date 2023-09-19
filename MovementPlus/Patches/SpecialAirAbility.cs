@@ -12,16 +12,19 @@ namespace MovementPlus.Patches
         [HarmonyPrefix]
         private static void SpecialAirAbility_OnStartAbility_Prefix(SpecialAirAbility __instance)
         {
-            float a = 9f;
-            float b = 32f;
-            float c = -1.4f;
-            float x = __instance.p.GetForwardSpeed();
+            if (MovementPlusPlugin.superTrickEnabled.Value)
+            {
+                float a = 9f;
+                float b = 32f;
+                float c = -1.4f;
+                float x = __instance.p.GetForwardSpeed();
 
-            var speedmath = (((a + b) * x) / (b + x) + c) * MovementPlusPlugin.superJumpStrength.Value;
+                var speedmath = (((a + b) * x) / (b + x) + c) * MovementPlusPlugin.superTrickStrength.Value;
 
-            __instance.jumpSpeed = (Mathf.Max(11.5f, speedmath));
+                __instance.jumpSpeed = (Mathf.Max(11.5f, speedmath));
 
-            __instance.duration = 0.3f;
+                __instance.duration = 0.3f;
+            }    
         }
     }
 }

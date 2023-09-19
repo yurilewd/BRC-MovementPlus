@@ -34,7 +34,7 @@ namespace MovementPlus.Patches
         private static void Player_FixedUpdatePlayer_Postfix(Player __instance)
         {
 
-            if (__instance.slideButtonNew && !__instance.TreatPlayerAsSortaGrounded() && __instance.motor.velocity.y <= 0f && canFastFall)
+            if (__instance.slideButtonNew && !__instance.TreatPlayerAsSortaGrounded() && __instance.motor.velocity.y <= 0f && canFastFall && MovementPlusPlugin.fastFallEnabled.Value)
             {
                 __instance.motor.SetVelocityYOneTime(Mathf.Min(__instance.motor.velocity.y + MovementPlusPlugin.fastFallAmount.Value, MovementPlusPlugin.fastFallAmount.Value));
                 __instance.ringParticles.Emit(1);
@@ -49,10 +49,16 @@ namespace MovementPlus.Patches
 
             if (__instance.ability == __instance.grindAbility)
             {
-                
                 if (__instance.grindAbility.posOnLine <= 0.1 && __instance.abilityTimer <= 0.1f && __instance.boostButtonHeld)
                 {
-                    __instance.normalBoostSpeed = Mathf.Max(defaultBoostSpeed, __instance.GetForwardSpeed() * MovementPlusPlugin.railGoonStrength.Value);
+                    if (!MovementPlusPlugin.railGoonEnabled.Value)
+                    {
+                        __instance.normalBoostSpeed = defaultBoostSpeed;
+                    }    
+                    else
+                    {
+                        __instance.normalBoostSpeed = Mathf.Max(defaultBoostSpeed, __instance.GetForwardSpeed() * MovementPlusPlugin.railGoonStrength.Value);
+                    }
                 }    
                 else
                 {
@@ -62,7 +68,6 @@ namespace MovementPlus.Patches
 
             else if (__instance.ability == __instance.wallrunAbility)
             {
-                //__instance.normalBoostSpeed = Mathf.Max(defaultBoostSpeed, __instance.GetForwardSpeed());
                 return;
             }
 
@@ -73,15 +78,16 @@ namespace MovementPlus.Patches
             
             float x = __instance.GetTotalSpeed();
 
-            __instance.vertMaxSpeed = Mathf.Max(defaultVertMaxSpeed, x);
-            __instance.vertTopJumpSpeed = Mathf.Max(defaultVertTopJumpSpeed, x / 1.6f);
-
-
-            
-
+            if (MovementPlusPlugin.vertEnabled.Value)
+            {
+                __instance.vertMaxSpeed = Mathf.Max(defaultVertMaxSpeed, x);
+            }    
+            if (MovementPlusPlugin.vertJumpEnabled.Value)
+            {
+                __instance.vertTopJumpSpeed = Mathf.Max(defaultVertTopJumpSpeed, x / 1.6f);
+            }    
         }
 
-        
 
         [HarmonyPatch(typeof(Player), nameof(Player.Jump))]
         [HarmonyPrefix]
