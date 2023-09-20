@@ -38,7 +38,7 @@ namespace MovementPlus.Patches
             {
                 __instance.motor.SetVelocityYOneTime(Mathf.Min(__instance.motor.velocity.y + MovementPlusPlugin.fastFallAmount.Value, MovementPlusPlugin.fastFallAmount.Value));
                 __instance.ringParticles.Emit(1);
-                __instance.AudioManager.PlaySfxGameplay(global::Reptile.SfxCollectionID.MAX, global::Reptile.AudioClipID.Male2Hurt, __instance.playerOneShotAudioSource, 0f);
+                __instance.AudioManager.PlaySfxGameplay(global::Reptile.SfxCollectionID.GenericMovementSfx, global::Reptile.AudioClipID.singleBoost, __instance.playerOneShotAudioSource, 0f);
                 canFastFall = false;
             }
 
