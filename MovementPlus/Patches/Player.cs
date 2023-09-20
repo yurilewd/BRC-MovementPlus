@@ -84,7 +84,7 @@ namespace MovementPlus.Patches
             }    
             if (MovementPlusPlugin.vertJumpEnabled.Value)
             {
-                __instance.vertTopJumpSpeed = Mathf.Max(defaultVertTopJumpSpeed, x / 1.6f);
+                __instance.vertTopJumpSpeed = Mathf.Max(defaultVertTopJumpSpeed, x * MovementPlusPlugin.vertJumpStrength.Value);
             }    
         }
 
