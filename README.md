@@ -1,2 +1,2 @@
-<p align="center"><img src="Resources/img/bannerHD.png"></p>
+<p align="left"><img src="Resources/img/bannerHD.png"></p>
  
