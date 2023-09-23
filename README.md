@@ -18,7 +18,7 @@
 
 ## Adjusted Vanilla Features
 
-- Improved carpet slide
+- Improved carpet sliding
 - Vert ramps scale with speed
 - Increased max fall speed
 - Reduced ground trick deceleration
@@ -32,7 +32,12 @@
 
 
  ## Instalation
- Hey tell people how to install this, make sure to include Bep and the thunderstore link idiot.
+
+ - Ensure you have BepInEx 5.4.21 installed, if you do not have that installed you can find it [Here](https://github.com/BepInEx/BepInEx/releases/tag/v5.4.21)
+ - Navigate to the Bomb Rush Cyberfunk folder, if you have the steam version this is located at this path "Program Files\Steam\steamapps\common\BombRushCyberfunk"
+ - place the MovementPlus.dll into the \BepInEx\plugins folder
+ - launch the game
+
 
 
  ## Credits
