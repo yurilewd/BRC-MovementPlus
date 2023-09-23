@@ -2,4 +2,26 @@
 
 <p style="text-align: center;">MovementPlus revamps and introduces multiple new movement mechanics to allow for faster, more rewarding gameplay.</p>
 <p style="text-align: center;">Many of the features included can be tweaked or outright disabled via the config file.</p>
+
+
+##  New Features
+
+- Frameboost
+- Super trick jump
+- Perfect manual
+- Fast fall
+- Rail goon
+
+
+## Adjusted Features
+
+- Improved Super Slide
+- Vert ramps scale with speed
+- Increased max fall speed
+- Reduced ground trick deceleration
+- Removed rail deceleration
+- Air dash retains more speed when changing directions
+- Rail hard corners give less speed per, but peak at a higher speed
+- boost scales with your total speed
+
  
