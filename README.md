@@ -4,6 +4,8 @@
 <p style="text-align: center;">Many of the features included can be tweaked or outright disabled via the config file.</p>
 
 
+# TRAILER GOES HERE
+
 
 ## New Features
 
