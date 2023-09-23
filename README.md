@@ -4,7 +4,9 @@
 <p style="text-align: center;">Many of the features included can be tweaked or outright disabled via the config file.</p>
 
 
-##  New Features
+## Features
+
+# New Features
 
 - Frameboost
 - Super trick jump
@@ -13,7 +15,7 @@
 - Rail goon
 
 
-## Adjusted Features
+# Adjusted Vanilla Features
 
 - Improved Super Slide
 - Vert ramps scale with speed
