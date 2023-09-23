@@ -4,7 +4,7 @@
 <p style="text-align: center;">Many of the features included can be tweaked or outright disabled via the config file.</p>
 
 
-# TRAILER GOES HERE
+### TRAILER GOES HERE
 
 
 ## New Features
@@ -29,3 +29,11 @@
 
 
  <p style="text-align: center;">For more in-depth explanations of the new and adjusted features visit THIS-LINK to learn more.</p>
+
+
+ ## Instalation
+ Hey tell people how to install this, make sure to include Bep and the thunderstore link idiot.
+
+
+ ## Credits
+ Make sure to thank _the boys_ for all their work.
