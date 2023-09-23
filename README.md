@@ -25,4 +25,5 @@
 - Rail hard corners give less speed per, but peak at a higher speed
 - boost scales with your total speed
 
+
  <p style="text-align: center;">For more in-depth explanations of the new and adjusted features visit THIS-LINK to learn more.</p>
