@@ -18,7 +18,7 @@
 
 ## Adjusted Vanilla Features
 
-- Improved Super Slide
+- Improved carpet slide
 - Vert ramps scale with speed
 - Increased max fall speed
 - Reduced ground trick deceleration
