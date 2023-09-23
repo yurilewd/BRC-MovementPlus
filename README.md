@@ -33,10 +33,12 @@
 
  ## Instalation
 
- - Ensure you have BepInEx 5.4.21 installed, if you do not have that installed you can find it [Here](https://github.com/BepInEx/BepInEx/releases/tag/v5.4.21)
+ - Ensure you have BepInEx 5.4.21 installed, if you do not have that installed you can find it [here](https://github.com/BepInEx/BepInEx/releases/tag/v5.4.21)
  - Navigate to the Bomb Rush Cyberfunk folder, if you have the steam version this is located at this path "Program Files\Steam\steamapps\common\BombRushCyberfunk"
- - place the MovementPlus.dll into the \BepInEx\plugins folder
- - launch the game
+ - Place the MovementPlus.dll into the \BepInEx\plugins folder, if you have BepInEx installed correctly this folder should already exist
+ - Launch the game
+
+ - Alternitivly you can use r2modman and let is handle that entire process, it can be found [here](https://thunderstore.io/c/bomb-rush-cyberfunk/p/ebkr/r2modman/)
 
 
 
