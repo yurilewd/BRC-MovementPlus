@@ -5,7 +5,7 @@
 
 
 ### TRAILER GOES HERE
-<p align="center">[![test](https://markdown-videos-api.jorgenkh.no/url?url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DRu8cHnfupic)](https://www.youtube.com/watch?v=Ru8cHnfupic)</p>
+ [![test](https://markdown-videos-api.jorgenkh.no/url?url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DRu8cHnfupic)](https://www.youtube.com/watch?v=Ru8cHnfupic)
 
 ## New Features
 
