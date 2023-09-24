@@ -5,16 +5,7 @@
 
 
 ### TRAILER GOES HERE
-<center>
- <iframe width="560" 
-         height="315" 
-         src="https://www.youtube.com/watch?v=Ru8cHnfupic" 
-         title="YouTube video player" 
-         frameborder="0" 
-         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-         allowfullscreen>
- </iframe>
-</center>
+{% include youtube.html id="7NgKmFbzvYY" %}  
 
 ## New Features
 
