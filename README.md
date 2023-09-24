@@ -5,7 +5,7 @@
 
 
 ### TRAILER GOES HERE
-<video src="Resources/vid/teaser_trailer_720.mp4">
+![](/Resources/vid/teaser_trailer_720.mp4)
 
 ## New Features
 
