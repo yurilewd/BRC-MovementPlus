@@ -25,7 +25,8 @@
 - Removed rail deceleration
 - Air dash retains more speed when changing directions
 - Rail hard corners give less speed per, but peak at a higher speed
-- boost scales with your total speed
+- Boost scales with your total speed
+- Various smaller changes that ensure speed is never set to a flat amount
 <br><br>
 
  <p style="text-align: center;">For more in-depth explanations of the new and adjusted features visit THIS-LINK to learn more.</p>
