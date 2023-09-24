@@ -5,8 +5,7 @@
 
 
 ### TRAILER GOES HERE
-<iframe width="560" height="315" src="https://www.youtube.com/embed/Ru8cHnfupic?si=UrwkPyTo6OFQUsvj" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-
+[![This is a test](https://markdown-videos-api.jorgenkh.no/url?url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DRu8cHnfupic)](https://www.youtube.com/watch?v=Ru8cHnfupic)
 
 ## New Features
 
