@@ -57,4 +57,4 @@
 
  ## Media
 
-[![Teaser Trailer](https://img.youtube.com/vi/0d2DVvsc1XE.jpg)](https://www.youtube.com/watch?v=0d2DVvsc1XE)
+[![Teaser Trailer](https://img.youtube.com/vi/0d2DVvsc1XE/maxresdefault.jpg)](https://www.youtube.com/watch?v=0d2DVvsc1XE)
