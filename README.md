@@ -5,6 +5,7 @@
 
 
 ### TRAILER GOES HERE
+<iframe width="560" height="315" src="https://www.youtube.com/embed/Ru8cHnfupic?si=UrwkPyTo6OFQUsvj" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
 
 ## New Features
@@ -48,7 +49,7 @@
  - The simplest is to just use the built in config editor in r2modman to edit the config<br>
 
  - You can edit it manually, you can find the config file in the \BepInEx\config folder, it should be named com.yuril. MovementPlus.cfg<br>
- 
+
  - You can use [this](https://github.com/BepInEx/BepInEx.ConfigurationManager) tool to edit the values in-game in real time, some changes may only take effect on entering a new area however
 
  ## Credits
