@@ -4,8 +4,6 @@
 <p style="text-align: center;">Many of the features included can be tweaked or outright disabled via the config file.</p>
 
 
-### TRAILER GOES HERE
- [![test](https://markdown-videos-api.jorgenkh.no/url?url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DRu8cHnfupic)](https://www.youtube.com/watch?v=Ru8cHnfupic)
 
 ## New Features
 
@@ -56,3 +54,7 @@
  - RackBox
  - FracturedStar
  - LIMBSMITH
+
+ ## Media
+
+[![Teaser Trailer](https://img.youtube.com/vi/0d2DVvsc1XE.jpg)](https://www.youtube.com/watch?v=0d2DVvsc1XE)
