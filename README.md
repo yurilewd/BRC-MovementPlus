@@ -27,7 +27,7 @@
 - Various smaller changes that ensure speed is never set to a flat amount
 <br><br>
 
- <p style="text-align: center;">For more in-depth explanations of the new and adjusted features visit THIS-LINK to learn more.</p>
+ For slightly more in-depth explanations of the new and adjusted features visit [THIS-LINK](https://docs.google.com/document/d/1u3AHQ6b7UP7IGx7_8Xx0hAa9TIijMVfsjSuHUOBdc3w/edit?usp=sharing) to learn more.
 
 
  ## Installation
