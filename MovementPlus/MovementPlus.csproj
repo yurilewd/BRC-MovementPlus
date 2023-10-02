@@ -93,6 +93,6 @@
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>COPY /y "C:\Users\yuril\Documents\BRC-Mods\MovementPlus\MovementPlus\obj\Debug\MovementPlus.dll" "C:\Program Files (x86)\Steam\steamapps\common\BombRushCyberfunk\BepInEx\plugins\MovementPlus.dll"</PostBuildEvent>
+    <PostBuildEvent>COPY /y "C:\Users\yuril\Documents\BRC-Mods\Workspace\MovementPlus\MovementPlus\obj\Debug\MovementPlus.dll" "C:\Program Files (x86)\Steam\steamapps\common\BombRushCyberfunk\BepInEx\plugins\MovementPlus.dll"</PostBuildEvent>
   </PropertyGroup>
 </Project>

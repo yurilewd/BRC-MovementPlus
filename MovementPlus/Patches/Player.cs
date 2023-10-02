@@ -26,7 +26,10 @@ namespace MovementPlus.Patches
             defaultVertMaxSpeed = __instance.vertMaxSpeed;
             defaultVertTopJumpSpeed = __instance.vertTopJumpSpeed;
             __instance.motor.maxFallSpeed = MovementPlusPlugin.maxFallSpeed.Value;
-            MovementPlusPlugin.player = __instance;
+            if (MovementPlusPlugin.player == null && !__instance.isAI)
+            {
+                MovementPlusPlugin.player = __instance;
+            }
         }
 
         [HarmonyPatch(typeof(Player), nameof(Player.FixedUpdatePlayer))]

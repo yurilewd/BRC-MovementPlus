@@ -2,6 +2,6 @@
     "name": "MovementPlus",
     "version_number": "1.0.0",
     "website_url": "https://github.com/yurilewd/BRC-MovementPlus",
-    "description": "revamps and introduces multiple new movement mechanics to allow for faster, more rewarding gameplay.",
+    "description": "Revamps and introduces multiple new movement mechanics to allow for faster, more rewarding gameplay.",
     "dependencies": ["BepInEx-BepInExPack-5.4.2100"]
 }
