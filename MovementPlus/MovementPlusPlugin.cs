@@ -18,7 +18,7 @@ namespace MovementPlus
     {
         private const string MyGUID = "com.yuril.MovementPlus";
         private const string PluginName = "MovementPlus";
-        private const string VersionString = "1.0.2";
+        private const string VersionString = "1.0.3";
 
 
         private Harmony harmony;
@@ -134,6 +134,7 @@ namespace MovementPlus
                     SlideBoost();
                     FastFall();
                     BoostChanges();
+                    VertChanges();
                 }    
             }
         }

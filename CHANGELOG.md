@@ -1,4 +1,7 @@
-## 1.02
+## 1.0.3
+whoops, fixed the vert stuff
+
+## 1.0.2
 More Slopcrew fixes
 
 ## 1.0.1
