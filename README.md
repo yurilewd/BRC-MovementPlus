@@ -4,6 +4,9 @@
 <p style="text-align: center;">Many of the features included can be tweaked or outright disabled via the config file.</p>
 
 
+## Know Incompatible Mods
+DontSetMySpeedPLS - using this won't crash the game, but it does break multiple mechanics for both mods.
+
 
 ## New Features
 

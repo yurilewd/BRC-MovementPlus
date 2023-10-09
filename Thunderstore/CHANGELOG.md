@@ -1,3 +1,6 @@
+## 1.02
+More Slopcrew fixes
+
 ## 1.0.1
 Fixed the perfect manual not working with Slopcrew
 

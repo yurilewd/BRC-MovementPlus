@@ -18,11 +18,18 @@ namespace MovementPlus
     {
         private const string MyGUID = "com.yuril.MovementPlus";
         private const string PluginName = "MovementPlus";
-        private const string VersionString = "1.0.1";
+        private const string VersionString = "1.0.2";
 
 
         private Harmony harmony;
         public static Player player;
+
+        public static bool canFastFall;
+        public static float defaultBoostSpeed;
+
+        public static float defaultVertMaxSpeed;
+        public static float defaultVertTopJumpSpeed;
+         
 
 
         public static ConfigEntry<bool> railGoonEnabled;
@@ -125,6 +132,8 @@ namespace MovementPlus
                 if (MovementPlusPlugin.perfectManualEnabled.Value)
                 {
                     SlideBoost();
+                    FastFall();
+                    BoostChanges();
                 }    
             }
         }
@@ -176,8 +185,69 @@ namespace MovementPlus
             }
         }
 
+        private void FastFall()
+        {
+            if (player.slideButtonNew && !player.TreatPlayerAsSortaGrounded() && player.motor.velocity.y <= 0f && MovementPlusPlugin.canFastFall && MovementPlusPlugin.fastFallEnabled.Value)
+            {
+                player.motor.SetVelocityYOneTime(Mathf.Min(player.motor.velocity.y + MovementPlusPlugin.fastFallAmount.Value, MovementPlusPlugin.fastFallAmount.Value));
+                player.ringParticles.Emit(1);
+                player.AudioManager.PlaySfxGameplay(global::Reptile.SfxCollectionID.GenericMovementSfx, global::Reptile.AudioClipID.singleBoost, player.playerOneShotAudioSource, 0f);
+                MovementPlusPlugin.canFastFall = false;
+            }
+            if (player.TreatPlayerAsSortaGrounded())
+            {
+                MovementPlusPlugin.canFastFall = true;
+            }
+        }
 
-        public static float remap(float val, float in1, float in2, float out1, float out2)
+        private void BoostChanges()
+        {
+            if (player.ability == player.grindAbility)
+            {
+                if (player.grindAbility.posOnLine <= 0.1 && player.abilityTimer <= 0.1f && player.boostButtonHeld)
+                {
+                    if (!MovementPlusPlugin.railGoonEnabled.Value)
+                    {
+                        player.normalBoostSpeed = defaultBoostSpeed;
+                    }
+                    else
+                    {
+                        player.normalBoostSpeed = Mathf.Max(defaultBoostSpeed, player.GetForwardSpeed() * MovementPlusPlugin.railGoonStrength.Value);
+                    }
+                }
+                else
+                {
+                    player.normalBoostSpeed = Mathf.Max(defaultBoostSpeed, player.GetForwardSpeed());
+                }
+            }
+
+            else if (player.ability == player.wallrunAbility)
+            {
+                return;
+            }
+
+            else if (player.ability != player.boostAbility)
+            {
+                player.normalBoostSpeed = Mathf.Max(defaultBoostSpeed, player.GetForwardSpeed() + 0.2f);
+            }
+        }
+
+        private void VertChanges()
+        {
+            if (MovementPlusPlugin.vertEnabled.Value)
+            {
+                player.vertMaxSpeed = Mathf.Max(defaultVertMaxSpeed, player.GetTotalSpeed());
+            }
+            if (MovementPlusPlugin.vertJumpEnabled.Value)
+            {
+                player.vertTopJumpSpeed = Mathf.Max(defaultVertTopJumpSpeed, player.GetTotalSpeed() * MovementPlusPlugin.vertJumpStrength.Value);
+            }
+        }
+
+       
+    
+
+    public static float remap(float val, float in1, float in2, float out1, float out2)
         {
             return out1 + (val - in1) * (out2 - out1) / (in2 - in1);
         }

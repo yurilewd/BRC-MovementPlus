@@ -9,26 +9,17 @@ namespace MovementPlus.Patches
 {
     internal static class PlayerPatch
     {
-
-        private static float defaultBoostSpeed;
-        private static float defaultVertMaxSpeed;
-        private static float defaultVertTopJumpSpeed;
-
-        private static bool canFastFall;
-
-
-
         [HarmonyPatch(typeof(Player), nameof(Player.Init))]
         [HarmonyPostfix]
         private static void Player_Init_Postfix(Player __instance)
         {
-            defaultBoostSpeed = __instance.normalBoostSpeed;
-            defaultVertMaxSpeed = __instance.vertMaxSpeed;
-            defaultVertTopJumpSpeed = __instance.vertTopJumpSpeed;
-            __instance.motor.maxFallSpeed = MovementPlusPlugin.maxFallSpeed.Value;
             if (MovementPlusPlugin.player == null && !__instance.isAI)
             {
                 MovementPlusPlugin.player = __instance;
+                MovementPlusPlugin.defaultBoostSpeed = __instance.normalBoostSpeed;
+                MovementPlusPlugin.defaultVertMaxSpeed = __instance.vertMaxSpeed;
+                MovementPlusPlugin.defaultVertTopJumpSpeed = __instance.vertTopJumpSpeed;
+                __instance.motor.maxFallSpeed = MovementPlusPlugin.maxFallSpeed.Value;
             }
         }
 
@@ -36,59 +27,7 @@ namespace MovementPlus.Patches
         [HarmonyPostfix]
         private static void Player_FixedUpdatePlayer_Postfix(Player __instance)
         {
-
-            if (__instance.slideButtonNew && !__instance.TreatPlayerAsSortaGrounded() && __instance.motor.velocity.y <= 0f && canFastFall && MovementPlusPlugin.fastFallEnabled.Value)
-            {
-                __instance.motor.SetVelocityYOneTime(Mathf.Min(__instance.motor.velocity.y + MovementPlusPlugin.fastFallAmount.Value, MovementPlusPlugin.fastFallAmount.Value));
-                __instance.ringParticles.Emit(1);
-                __instance.AudioManager.PlaySfxGameplay(global::Reptile.SfxCollectionID.GenericMovementSfx, global::Reptile.AudioClipID.singleBoost, __instance.playerOneShotAudioSource, 0f);
-                canFastFall = false;
-            }
-
-            if (__instance.TreatPlayerAsSortaGrounded())
-            {
-                canFastFall = true;
-            }    
-
-            if (__instance.ability == __instance.grindAbility)
-            {
-                if (__instance.grindAbility.posOnLine <= 0.1 && __instance.abilityTimer <= 0.1f && __instance.boostButtonHeld)
-                {
-                    if (!MovementPlusPlugin.railGoonEnabled.Value)
-                    {
-                        __instance.normalBoostSpeed = defaultBoostSpeed;
-                    }    
-                    else
-                    {
-                        __instance.normalBoostSpeed = Mathf.Max(defaultBoostSpeed, __instance.GetForwardSpeed() * MovementPlusPlugin.railGoonStrength.Value);
-                    }
-                }    
-                else
-                {
-                    __instance.normalBoostSpeed = Mathf.Max(defaultBoostSpeed, __instance.GetForwardSpeed());
-                }    
-            }
-
-            else if (__instance.ability == __instance.wallrunAbility)
-            {
-                return;
-            }
-
-            else if (__instance.ability != __instance.boostAbility)
-            {
-                __instance.normalBoostSpeed = Mathf.Max(defaultBoostSpeed, __instance.GetForwardSpeed() + 0.2f);
-            }
             
-            float x = __instance.GetTotalSpeed();
-
-            if (MovementPlusPlugin.vertEnabled.Value)
-            {
-                __instance.vertMaxSpeed = Mathf.Max(defaultVertMaxSpeed, x);
-            }    
-            if (MovementPlusPlugin.vertJumpEnabled.Value)
-            {
-                __instance.vertTopJumpSpeed = Mathf.Max(defaultVertTopJumpSpeed, x * MovementPlusPlugin.vertJumpStrength.Value);
-            }    
         }
 
 
