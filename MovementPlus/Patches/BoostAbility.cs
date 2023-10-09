@@ -1,5 +1,6 @@
 ﻿using HarmonyLib;
 using Reptile;
+using System;
 using Unity;
 using UnityEngine;
 
@@ -23,6 +24,11 @@ namespace MovementPlus.Patches
         [HarmonyPostfix]
         private static void BoostAbility_FixedUpdateAbility_Postfix(BoostAbility __instance)
         {
+            if (__instance.p.IsGrounded() && __instance.p.IsComboing())
+            {
+                __instance.p.DoComboTimeOut(Core.dt * MovementPlusPlugin.boostComboTimeout.Value);
+            }
+
             if (MovementPlusPlugin.boostChangeEnabled.Value)
             {
                 if (__instance.state == BoostAbility.State.START_BOOST)
@@ -40,6 +46,16 @@ namespace MovementPlus.Patches
                 {
                     __instance.p.normalBoostSpeed = __instance.p.GetTotalSpeed() + 0.2f;
                 }
+            }
+        }
+
+        [HarmonyPatch(typeof(BoostAbility), nameof(BoostAbility.OnJump))]
+        [HarmonyPrefix]
+        private static void BoostAbility_OnJump_PreFix(BoostAbility __instance)
+        {
+            if (__instance.p.IsComboing())
+            {
+                __instance.p.DoComboTimeOut(MovementPlusPlugin.boostComboJumpAmount.Value);
             }
         }
     }

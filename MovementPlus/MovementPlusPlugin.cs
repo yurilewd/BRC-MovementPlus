@@ -24,6 +24,9 @@ namespace MovementPlus
         private Harmony harmony;
         public static Player player;
 
+        public static bool canFastFall;
+        public static float defaultBoostSpeed;
+
 
         public static ConfigEntry<bool> railGoonEnabled;
         public static ConfigEntry<float> railGoonStrength;
@@ -61,6 +64,11 @@ namespace MovementPlus
         public static ConfigEntry<float> railHardAmount;
         public static ConfigEntry<float> railHardCap;
         public static ConfigEntry<float> railDecc;
+
+        public static ConfigEntry<float> boostComboTimeout;
+        public static ConfigEntry<float> boostComboJumpAmount;
+
+        public static ConfigEntry<float> noAbilityComboTimeout;
 
 
         private void Awake()
@@ -102,6 +110,11 @@ namespace MovementPlus
             railHardCap = Config.Bind("9:General", "Rail Hard Corner Speed Cap", 40f, "Speed cap of Hard Corners.");
             railDecc = Config.Bind("9:General", "Rail Deceleration", 0f, "Amount of deceleration rails have.");
 
+            boostComboTimeout = Config.Bind("9:General", "Boost Combo Timer", 0.15f, "Combo timer while boosting. Higher means less time.");
+            boostComboJumpAmount = Config.Bind("9:General", "Boost Combo Jump Amount", 0.0625f, "The amount to remove from the combo meter when jumping while boosting.");
+
+            noAbilityComboTimeout = Config.Bind("9:General", "No Ability Combo Timer", 4.5f, "Combo timer while not sliding or boosting. Higher means less time.");
+
 
             harmony = new Harmony(MyGUID);
             harmony.PatchAll(typeof(WallrunLineAbilityPatch));
@@ -118,13 +131,15 @@ namespace MovementPlus
         }
 
 
-        private void Update()
+        private void FixedUpdate()
         {
             if (player != null)
             {
                 if (MovementPlusPlugin.perfectManualEnabled.Value)
                 {
                     SlideBoost();
+                    FastFall();
+                    BoostChanges();
                 }    
             }
         }
@@ -176,6 +191,52 @@ namespace MovementPlus
             }
         }
 
+        private void FastFall()
+        {
+            if (player.slideButtonNew && !player.TreatPlayerAsSortaGrounded() && player.motor.velocity.y <= 0f && MovementPlusPlugin.canFastFall && MovementPlusPlugin.fastFallEnabled.Value)
+            {
+                player.motor.SetVelocityYOneTime(Mathf.Min(player.motor.velocity.y + MovementPlusPlugin.fastFallAmount.Value, MovementPlusPlugin.fastFallAmount.Value));
+                player.ringParticles.Emit(1);
+                player.AudioManager.PlaySfxGameplay(global::Reptile.SfxCollectionID.GenericMovementSfx, global::Reptile.AudioClipID.singleBoost, player.playerOneShotAudioSource, 0f);
+                MovementPlusPlugin.canFastFall = false;
+            }
+            if (player.TreatPlayerAsSortaGrounded())
+            {
+                MovementPlusPlugin.canFastFall = true;
+            }
+        }
+
+        private void BoostChanges()
+        {
+            if (player.ability == player.grindAbility)
+            {
+                if (player.grindAbility.posOnLine <= 0.1 && player.abilityTimer <= 0.1f && player.boostButtonHeld)
+                {
+                    if (!MovementPlusPlugin.railGoonEnabled.Value)
+                    {
+                        player.normalBoostSpeed = defaultBoostSpeed;
+                    }
+                    else
+                    {
+                        player.normalBoostSpeed = Mathf.Max(defaultBoostSpeed, player.GetForwardSpeed() * MovementPlusPlugin.railGoonStrength.Value);
+                    }
+                }
+                else
+                {
+                    player.normalBoostSpeed = Mathf.Max(defaultBoostSpeed, player.GetForwardSpeed());
+                }
+            }
+
+            else if (player.ability == player.wallrunAbility)
+            {
+                return;
+            }
+
+            else if (player.ability != player.boostAbility)
+            {
+                player.normalBoostSpeed = Mathf.Max(defaultBoostSpeed, player.GetForwardSpeed() + 0.2f);
+            }
+        }
 
         public static float remap(float val, float in1, float in2, float out1, float out2)
         {

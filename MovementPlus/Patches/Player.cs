@@ -9,26 +9,22 @@ namespace MovementPlus.Patches
 {
     internal static class PlayerPatch
     {
-
-        private static float defaultBoostSpeed;
         private static float defaultVertMaxSpeed;
         private static float defaultVertTopJumpSpeed;
-
-        private static bool canFastFall;
-
 
 
         [HarmonyPatch(typeof(Player), nameof(Player.Init))]
         [HarmonyPostfix]
         private static void Player_Init_Postfix(Player __instance)
         {
-            defaultBoostSpeed = __instance.normalBoostSpeed;
-            defaultVertMaxSpeed = __instance.vertMaxSpeed;
-            defaultVertTopJumpSpeed = __instance.vertTopJumpSpeed;
-            __instance.motor.maxFallSpeed = MovementPlusPlugin.maxFallSpeed.Value;
             if (MovementPlusPlugin.player == null && !__instance.isAI)
             {
+                Debug.Log("Do Thing");
                 MovementPlusPlugin.player = __instance;
+                MovementPlusPlugin.defaultBoostSpeed = __instance.normalBoostSpeed;
+                defaultVertMaxSpeed = __instance.vertMaxSpeed;
+                defaultVertTopJumpSpeed = __instance.vertTopJumpSpeed;
+                __instance.motor.maxFallSpeed = MovementPlusPlugin.maxFallSpeed.Value;
             }
         }
 
@@ -36,58 +32,13 @@ namespace MovementPlus.Patches
         [HarmonyPostfix]
         private static void Player_FixedUpdatePlayer_Postfix(Player __instance)
         {
-
-            if (__instance.slideButtonNew && !__instance.TreatPlayerAsSortaGrounded() && __instance.motor.velocity.y <= 0f && canFastFall && MovementPlusPlugin.fastFallEnabled.Value)
-            {
-                __instance.motor.SetVelocityYOneTime(Mathf.Min(__instance.motor.velocity.y + MovementPlusPlugin.fastFallAmount.Value, MovementPlusPlugin.fastFallAmount.Value));
-                __instance.ringParticles.Emit(1);
-                __instance.AudioManager.PlaySfxGameplay(global::Reptile.SfxCollectionID.GenericMovementSfx, global::Reptile.AudioClipID.singleBoost, __instance.playerOneShotAudioSource, 0f);
-                canFastFall = false;
-            }
-
-            if (__instance.TreatPlayerAsSortaGrounded())
-            {
-                canFastFall = true;
-            }    
-
-            if (__instance.ability == __instance.grindAbility)
-            {
-                if (__instance.grindAbility.posOnLine <= 0.1 && __instance.abilityTimer <= 0.1f && __instance.boostButtonHeld)
-                {
-                    if (!MovementPlusPlugin.railGoonEnabled.Value)
-                    {
-                        __instance.normalBoostSpeed = defaultBoostSpeed;
-                    }    
-                    else
-                    {
-                        __instance.normalBoostSpeed = Mathf.Max(defaultBoostSpeed, __instance.GetForwardSpeed() * MovementPlusPlugin.railGoonStrength.Value);
-                    }
-                }    
-                else
-                {
-                    __instance.normalBoostSpeed = Mathf.Max(defaultBoostSpeed, __instance.GetForwardSpeed());
-                }    
-            }
-
-            else if (__instance.ability == __instance.wallrunAbility)
-            {
-                return;
-            }
-
-            else if (__instance.ability != __instance.boostAbility)
-            {
-                __instance.normalBoostSpeed = Mathf.Max(defaultBoostSpeed, __instance.GetForwardSpeed() + 0.2f);
-            }
-            
-            float x = __instance.GetTotalSpeed();
-
             if (MovementPlusPlugin.vertEnabled.Value)
             {
-                __instance.vertMaxSpeed = Mathf.Max(defaultVertMaxSpeed, x);
+                __instance.vertMaxSpeed = Mathf.Max(defaultVertMaxSpeed, __instance.GetTotalSpeed());
             }    
             if (MovementPlusPlugin.vertJumpEnabled.Value)
             {
-                __instance.vertTopJumpSpeed = Mathf.Max(defaultVertTopJumpSpeed, x * MovementPlusPlugin.vertJumpStrength.Value);
+                __instance.vertTopJumpSpeed = Mathf.Max(defaultVertTopJumpSpeed, __instance.GetTotalSpeed() * MovementPlusPlugin.vertJumpStrength.Value);
             }    
         }
 
@@ -162,6 +113,125 @@ namespace MovementPlus.Patches
             else if (__instance.onLauncher)
             {
                 __instance.ActivateAbility(__instance.airTrickAbility);
+            }
+            return false;
+        }
+
+
+        [HarmonyPatch(typeof(Player), nameof(Player.OnLanded))]
+        [HarmonyPrefix]
+        private static bool Player_OnLanded_Prefix(Player __instance)
+        {
+            __instance.OrientVisualInstant();
+            if (__instance.motor.groundRigidbody != null)
+            {
+                Car component = __instance.motor.groundRigidbody.GetComponent<Car>();
+                if (component != null)
+                {
+                    component.PlayerLandsOn();
+                }
+            }
+            if (__instance.ability == null)
+            {
+                if (__instance.GetForwardSpeed() <= __instance.minMoveSpeed + 1f)
+                {
+                    __instance.PlayAnim(__instance.landHash, false, false, -1f);
+                }
+                else
+                {
+                    __instance.PlayAnim(__instance.landRunHash, false, false, -1f);
+                }
+                if (__instance.GetForwardSpeed() > __instance.maxMoveSpeed)
+                {
+                    //__instance.SetSpeedFlat(__instance.maxMoveSpeed);
+                }
+                if (__instance.slideButtonHeld && !__instance.slideAbility.locked)
+                {
+                    __instance.ActivateAbility(__instance.slideAbility);
+                }
+                else
+                {
+                    //__instance.DoComboTimeOut(Core.dt * 0.01f);
+                    //__instance.LandCombo();
+                }
+            }
+            else if (__instance.ability == __instance.boostAbility)
+            {
+                //__instance.LandCombo();
+            }
+            __instance.audioManager.PlaySfxGameplay(__instance.moveStyle, AudioClipID.land, __instance.playerOneShotAudioSource, 0f);
+            __instance.CreateCircleDustEffect(__instance.motor.groundNormalVisual * -1f);
+            return false;
+        }
+
+        [HarmonyPatch(typeof(Player), nameof(Player.FixedUpdateAbilities))]
+        [HarmonyPrefix]
+        private static bool Player_FixedUpdateAbilities_Prefix(Player __instance)
+        {
+            if (__instance.hitpause > 0f)
+            {
+                __instance.hitpause -= Core.dt;
+                if (__instance.hitpause <= 0f)
+                {
+                    __instance.StopHitpause();
+                    return false;
+                }
+            }
+            else
+            {
+                bool flag = __instance.IsGrounded();
+                __instance.abilityTimer += Core.dt;
+                if (flag)
+                {
+                    __instance.RegainAirMobility();
+                }
+                __instance.grindAbility.PassiveUpdate();
+                if (__instance.isAI)
+                {
+                    __instance.pseudoGraffitiAbility.PassiveUpdate();
+                }
+                __instance.wallrunAbility.PassiveUpdate();
+                __instance.handplantAbility.PassiveUpdate();
+                if (__instance.ability == null)
+                {
+                    if (!__instance.IsBusyWithSequence())
+                    {
+                        for (int i = 0; i < __instance.abilities.Count; i++)
+                        {
+                            if (__instance.abilities[i].CheckActivation())
+                            {
+                                return false;
+                            }
+                        }
+                    }
+                    if (flag && __instance.inWalkZone)
+                    {
+                        if (__instance.usingEquippedMovestyle)
+                        {
+                            __instance.ActivateAbility(__instance.switchMoveStyleAbility);
+                        }
+                    }
+                    else if (__instance.switchStyleButtonNew && !__instance.switchToEquippedMovestyleLocked && !flag)
+                    {
+                        __instance.SwitchToEquippedMovestyle(!__instance.usingEquippedMovestyle, true, true, true);
+                    }
+                }
+                else
+                {
+                    __instance.ability.FixedUpdateAbility();
+                }
+                if (__instance.ability == null && flag)
+                {
+                    if (!__instance.IsBusyWithSequence() && !__instance.motor.wasGrounded && __instance.slideButtonHeld && !__instance.slideAbility.locked)
+                    {
+                        __instance.ActivateAbility(__instance.slideAbility);
+                        return false;
+                    }
+                    if (__instance.IsComboing())
+                    {
+                        __instance.DoComboTimeOut(Core.dt * MovementPlusPlugin.noAbilityComboTimeout.Value);
+                    }
+                }
             }
             return false;
         }
