@@ -54,6 +54,7 @@
  - RackBox
  - FracturedStar
  - LIMBSMITH
+ - Lazy Duchess
 
  ## Media
 

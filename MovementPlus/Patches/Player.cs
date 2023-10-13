@@ -9,8 +9,7 @@ namespace MovementPlus.Patches
 {
     internal static class PlayerPatch
     {
-        private static float defaultVertMaxSpeed;
-        private static float defaultVertTopJumpSpeed;
+        private static bool tooFast;
 
 
         [HarmonyPatch(typeof(Player), nameof(Player.Init))]
@@ -19,12 +18,22 @@ namespace MovementPlus.Patches
         {
             if (MovementPlusPlugin.player == null && !__instance.isAI)
             {
-                Debug.Log("Do Thing");
                 MovementPlusPlugin.player = __instance;
                 MovementPlusPlugin.defaultBoostSpeed = __instance.normalBoostSpeed;
-                defaultVertMaxSpeed = __instance.vertMaxSpeed;
-                defaultVertTopJumpSpeed = __instance.vertTopJumpSpeed;
+                MovementPlusPlugin.defaultVertMaxSpeed = __instance.vertMaxSpeed;
+                MovementPlusPlugin.defaultVertTopJumpSpeed = __instance.vertTopJumpSpeed;
                 __instance.motor.maxFallSpeed = MovementPlusPlugin.maxFallSpeed.Value;
+                __instance.wallrunAbility.lastSpeed = MovementPlusPlugin.savedLastSpeed;
+                __instance.vertBottomExitSpeedThreshold = 0f;
+
+                if (MovementPlusPlugin.collisionChangeEnabled.Value)
+                {
+                    var bodies = __instance.GetComponentsInChildren<Rigidbody>();
+                    foreach (var body in bodies)
+                    {
+                        body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+                    }
+                }
             }
         }
 
@@ -32,14 +41,14 @@ namespace MovementPlus.Patches
         [HarmonyPostfix]
         private static void Player_FixedUpdatePlayer_Postfix(Player __instance)
         {
-            if (MovementPlusPlugin.vertEnabled.Value)
+           if (MovementPlusPlugin.timeInAir >= 1.5f)
             {
-                __instance.vertMaxSpeed = Mathf.Max(defaultVertMaxSpeed, __instance.GetTotalSpeed());
-            }    
-            if (MovementPlusPlugin.vertJumpEnabled.Value)
+                tooFast = true;
+            }
+           else
             {
-                __instance.vertTopJumpSpeed = Mathf.Max(defaultVertTopJumpSpeed, __instance.GetTotalSpeed() * MovementPlusPlugin.vertJumpStrength.Value);
-            }    
+                tooFast = false;
+            }
         }
 
 
@@ -141,9 +150,9 @@ namespace MovementPlus.Patches
                 {
                     __instance.PlayAnim(__instance.landRunHash, false, false, -1f);
                 }
-                if (__instance.GetForwardSpeed() > __instance.maxMoveSpeed)
+                if (tooFast && __instance.moveStyle == MoveStyle.ON_FOOT)
                 {
-                    //__instance.SetSpeedFlat(__instance.maxMoveSpeed);
+                    __instance.SetSpeedFlat(__instance.maxMoveSpeed);
                 }
                 if (__instance.slideButtonHeld && !__instance.slideAbility.locked)
                 {
@@ -151,7 +160,6 @@ namespace MovementPlus.Patches
                 }
                 else
                 {
-                    //__instance.DoComboTimeOut(Core.dt * 0.01f);
                     //__instance.LandCombo();
                 }
             }

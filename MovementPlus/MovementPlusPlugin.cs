@@ -18,7 +18,7 @@ namespace MovementPlus
     {
         private const string MyGUID = "com.yuril.MovementPlus";
         private const string PluginName = "MovementPlus";
-        private const string VersionString = "1.0.1";
+        private const string VersionString = "1.1.0";
 
 
         private Harmony harmony;
@@ -26,6 +26,16 @@ namespace MovementPlus
 
         public static bool canFastFall;
         public static float defaultBoostSpeed;
+
+        public static float defaultVertMaxSpeed;
+        public static float defaultVertTopJumpSpeed;
+
+        public static float savedLastSpeed;
+
+        public static float noAbilitySpeed;
+
+        public static float timeInAir = 0f;
+
 
 
         public static ConfigEntry<bool> railGoonEnabled;
@@ -56,6 +66,7 @@ namespace MovementPlus
         public static ConfigEntry<bool> vertEnabled;
         public static ConfigEntry<bool> vertJumpEnabled;
         public static ConfigEntry<float> vertJumpStrength;
+        public static ConfigEntry<float> vertJumpCap;
 
         public static ConfigEntry<float> maxFallSpeed;
         public static ConfigEntry<float> airDashSpeed;
@@ -69,6 +80,9 @@ namespace MovementPlus
         public static ConfigEntry<float> boostComboJumpAmount;
 
         public static ConfigEntry<float> noAbilityComboTimeout;
+
+        public static ConfigEntry<bool> collisionChangeEnabled;
+
 
 
         private void Awake()
@@ -92,8 +106,8 @@ namespace MovementPlus
             perfectManualCap = Config.Bind("5:PerfectManual", "Perfect Manual Speed Cap", 23f, "Speed cap of the perfect manual.");
             perfectManualGrace = Config.Bind("5:PerfectManual", "Perfect Manual Grace Period", 0.1f, "The amount of time to land a perfect manual.");
 
-            superSlideSpeed = Config.Bind("6:SuperSlide", "Super Slide Speed", 20f, "Base speed for slide track sliding.");
-            superSlideIncrease = Config.Bind("6:SuperSlide", "Super Slide Speed Increase Over Time", 0.1f, "Speed to gain while sliding on slide tracks.");
+            superSlideSpeed = Config.Bind("6:SuperSlide", "Super Slide Speed", 25f, "Base speed for slide track sliding.");
+            superSlideIncrease = Config.Bind("6:SuperSlide", "Super Slide Speed Increase Over Time", 0.15f, "Speed to gain while sliding on slide tracks.");
 
             fastFallEnabled = Config.Bind("7:FastFall", "Fast Fall Enabled", true, "Pressing the manual button while moving down will launch you downwards.");
             fastFallAmount = Config.Bind("7:FastFall", "Fast Fall Amount", -13f, "Fast fall speed.");
@@ -101,6 +115,7 @@ namespace MovementPlus
             vertEnabled = Config.Bind("8:Vert", "Vert Ramp Speed Change Enabled", true, "Vert ramps scale with your speed instead of just being a flat speed.");
             vertJumpEnabled = Config.Bind("8:Vert", "Vert Ramp Jump Change Enabled", true, "Vert ramps jump height scales with your speed.");
             vertJumpStrength = Config.Bind("8:Vert", "Vert Ramp Jump Height Strength", 0.6f, "Vert jump heght multiplier.");
+            vertJumpCap = Config.Bind("8:Vert", "Vert Ramp Jump Height Cap", 50f, "Cap for vert maximum jump height");
 
             maxFallSpeed = Config.Bind("9:General", "Max Fall Speed", 40f, "Maximum speed you can fall.");
             airDashSpeed = Config.Bind("9:General", "Air Dash Retain Speed", 0.5f, "Percent of speed to maintain when changing direction with an air dash.");
@@ -109,11 +124,14 @@ namespace MovementPlus
             railHardAmount = Config.Bind("9:General", "Rail Hard Corner Amount", 1f, "Amount of speed to add per hard corner.");
             railHardCap = Config.Bind("9:General", "Rail Hard Corner Speed Cap", 40f, "Speed cap of Hard Corners.");
             railDecc = Config.Bind("9:General", "Rail Deceleration", 0f, "Amount of deceleration rails have.");
+            collisionChangeEnabled = Config.Bind("9:General", "Collision Change Enabled", true, "No longer allows you to clip through walls and other objects at high speeds.");
 
-            boostComboTimeout = Config.Bind("9:General", "Boost Combo Timer", 0.15f, "Combo timer while boosting. Higher means less time.");
-            boostComboJumpAmount = Config.Bind("9:General", "Boost Combo Jump Amount", 0.0625f, "The amount to remove from the combo meter when jumping while boosting.");
+            boostComboTimeout = Config.Bind("10:ComboTimer", "Boost Combo Timer", 0.15f, "Duration of combo timer while boosting. Higher value means less time.");
+            boostComboJumpAmount = Config.Bind("9:ComboTimer", "Boost Combo Timer Jump Cost", 0.0625f, "Amount to remove from combo while jumping in a boost.");
 
-            noAbilityComboTimeout = Config.Bind("9:General", "No Ability Combo Timer", 4.5f, "Combo timer while not sliding or boosting. Higher means less time.");
+            noAbilityComboTimeout = Config.Bind("9:ComboTimer", "No Ability Combo Timer", 6.5f, "Duration of combo timer while not boosting or using a manual. Higher value means less time.");
+
+
 
 
             harmony = new Harmony(MyGUID);
@@ -125,6 +143,7 @@ namespace MovementPlus
             harmony.PatchAll(typeof(GroundTrickAbilityPatch));
             harmony.PatchAll(typeof(SlideAbilityPatch));
             harmony.PatchAll(typeof(AirDashAbilityPatch));
+            harmony.PatchAll(typeof(HandplantAbilityPatch));
 
 
             Logger.LogInfo($"MovementPlus has been loaded!");
@@ -140,7 +159,10 @@ namespace MovementPlus
                     SlideBoost();
                     FastFall();
                     BoostChanges();
-                }    
+                    VertChanges();
+                    SaveSpeed();
+                    TimeInAir();
+                }
             }
         }
 
@@ -193,7 +215,7 @@ namespace MovementPlus
 
         private void FastFall()
         {
-            if (player.slideButtonNew && !player.TreatPlayerAsSortaGrounded() && player.motor.velocity.y <= 0f && MovementPlusPlugin.canFastFall && MovementPlusPlugin.fastFallEnabled.Value)
+            if (player.slideButtonNew && (!player.TreatPlayerAsSortaGrounded() || player.ability == player.vertAbility) && player.motor.velocity.y <= 0f && MovementPlusPlugin.canFastFall && MovementPlusPlugin.fastFallEnabled.Value)
             {
                 player.motor.SetVelocityYOneTime(Mathf.Min(player.motor.velocity.y + MovementPlusPlugin.fastFallAmount.Value, MovementPlusPlugin.fastFallAmount.Value));
                 player.ringParticles.Emit(1);
@@ -235,6 +257,48 @@ namespace MovementPlus
             else if (player.ability != player.boostAbility)
             {
                 player.normalBoostSpeed = Mathf.Max(defaultBoostSpeed, player.GetForwardSpeed() + 0.2f);
+            }
+        }
+
+        private void VertChanges()
+        {
+            if (player.ability == player.vertAbility)
+            {
+                return;
+            }
+            if (MovementPlusPlugin.vertEnabled.Value)
+            {
+                player.vertMaxSpeed = Mathf.Max(defaultVertMaxSpeed, player.GetTotalSpeed());
+                player.vertBottomExitSpeed = player.GetTotalSpeed() + 7f;
+            }
+            if (MovementPlusPlugin.vertJumpEnabled.Value)
+            {
+                var x = Mathf.Max(defaultVertTopJumpSpeed, player.GetTotalSpeed() * MovementPlusPlugin.vertJumpStrength.Value);
+                x = Mathf.Min(vertJumpCap.Value, x);
+                player.vertTopJumpSpeed = x;
+            }
+        }
+
+
+        private void SaveSpeed()
+        {
+            if (player.ability == player.grindAbility || player.ability == player.handplantAbility)
+            {
+                return;
+            }
+            noAbilitySpeed = player.GetForwardSpeed();
+        }
+
+
+        private void TimeInAir()
+        {
+            if (player.TreatPlayerAsSortaGrounded())
+            {
+                timeInAir = 0f;
+            }
+            else
+            {
+                timeInAir += Core.dt;
             }
         }
 
