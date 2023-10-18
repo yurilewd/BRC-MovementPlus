@@ -57,3 +57,4 @@ DontSetMySpeedPLS - using this won't crash the game, but it does break multiple 
  - RackBox
  - FracturedStar
  - LIMBSMITH
+ -Lazy Duchess

@@ -167,7 +167,7 @@ namespace MovementPlus
                     BoostChanges();
                     VertChanges();
                     SaveSpeed();
-                    TimeInAir()
+                    TimeInAir();
                 }    
             }
         }
@@ -307,7 +307,6 @@ namespace MovementPlus
             {
                 timeInAir += Core.dt;
             }
-        }
             if (MovementPlusPlugin.vertEnabled.Value)
             {
                 player.vertMaxSpeed = Mathf.Max(defaultVertMaxSpeed, player.GetTotalSpeed());
@@ -317,9 +316,6 @@ namespace MovementPlus
                 player.vertTopJumpSpeed = Mathf.Max(defaultVertTopJumpSpeed, player.GetTotalSpeed() * MovementPlusPlugin.vertJumpStrength.Value);
             }
         }
-
-       
-    
 
     public static float remap(float val, float in1, float in2, float out1, float out2)
         {
