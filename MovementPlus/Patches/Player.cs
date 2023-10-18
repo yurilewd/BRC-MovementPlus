@@ -9,6 +9,9 @@ namespace MovementPlus.Patches
 {
     internal static class PlayerPatch
     {
+        private static bool tooFast;
+
+
         [HarmonyPatch(typeof(Player), nameof(Player.Init))]
         [HarmonyPostfix]
         private static void Player_Init_Postfix(Player __instance)
@@ -20,6 +23,18 @@ namespace MovementPlus.Patches
                 MovementPlusPlugin.defaultVertMaxSpeed = __instance.vertMaxSpeed;
                 MovementPlusPlugin.defaultVertTopJumpSpeed = __instance.vertTopJumpSpeed;
                 __instance.motor.maxFallSpeed = MovementPlusPlugin.maxFallSpeed.Value;
+
+                __instance.wallrunAbility.lastSpeed = MovementPlusPlugin.savedLastSpeed;
+                __instance.vertBottomExitSpeedThreshold = 0f;
+
+                if (MovementPlusPlugin.collisionChangeEnabled.Value)
+                {
+                    var bodies = __instance.GetComponentsInChildren<Rigidbody>();
+                    foreach (var body in bodies)
+                    {
+                        body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+                    }
+                }
             }
         }
 
@@ -27,7 +42,15 @@ namespace MovementPlus.Patches
         [HarmonyPostfix]
         private static void Player_FixedUpdatePlayer_Postfix(Player __instance)
         {
-            
+
+           if (MovementPlusPlugin.timeInAir >= 1.5f)
+            {
+                tooFast = true;
+            }
+           else
+            {
+                tooFast = false;
+            }
         }
 
 
@@ -101,6 +124,124 @@ namespace MovementPlus.Patches
             else if (__instance.onLauncher)
             {
                 __instance.ActivateAbility(__instance.airTrickAbility);
+            }
+            return false;
+        }
+
+
+        [HarmonyPatch(typeof(Player), nameof(Player.OnLanded))]
+        [HarmonyPrefix]
+        private static bool Player_OnLanded_Prefix(Player __instance)
+        {
+            __instance.OrientVisualInstant();
+            if (__instance.motor.groundRigidbody != null)
+            {
+                Car component = __instance.motor.groundRigidbody.GetComponent<Car>();
+                if (component != null)
+                {
+                    component.PlayerLandsOn();
+                }
+            }
+            if (__instance.ability == null)
+            {
+                if (__instance.GetForwardSpeed() <= __instance.minMoveSpeed + 1f)
+                {
+                    __instance.PlayAnim(__instance.landHash, false, false, -1f);
+                }
+                else
+                {
+                    __instance.PlayAnim(__instance.landRunHash, false, false, -1f);
+                }
+                if (tooFast && __instance.moveStyle == MoveStyle.ON_FOOT)
+                {
+                    __instance.SetSpeedFlat(__instance.maxMoveSpeed);
+                }
+                if (__instance.slideButtonHeld && !__instance.slideAbility.locked)
+                {
+                    __instance.ActivateAbility(__instance.slideAbility);
+                }
+                else
+                {
+                    //__instance.LandCombo();
+                }
+            }
+            else if (__instance.ability == __instance.boostAbility)
+            {
+                //__instance.LandCombo();
+            }
+            __instance.audioManager.PlaySfxGameplay(__instance.moveStyle, AudioClipID.land, __instance.playerOneShotAudioSource, 0f);
+            __instance.CreateCircleDustEffect(__instance.motor.groundNormalVisual * -1f);
+            return false;
+        }
+
+        [HarmonyPatch(typeof(Player), nameof(Player.FixedUpdateAbilities))]
+        [HarmonyPrefix]
+        private static bool Player_FixedUpdateAbilities_Prefix(Player __instance)
+        {
+            if (__instance.hitpause > 0f)
+            {
+                __instance.hitpause -= Core.dt;
+                if (__instance.hitpause <= 0f)
+                {
+                    __instance.StopHitpause();
+                    return false;
+                }
+            }
+            else
+            {
+                bool flag = __instance.IsGrounded();
+                __instance.abilityTimer += Core.dt;
+                if (flag)
+                {
+                    __instance.RegainAirMobility();
+                }
+                __instance.grindAbility.PassiveUpdate();
+                if (__instance.isAI)
+                {
+                    __instance.pseudoGraffitiAbility.PassiveUpdate();
+                }
+                __instance.wallrunAbility.PassiveUpdate();
+                __instance.handplantAbility.PassiveUpdate();
+                if (__instance.ability == null)
+                {
+                    if (!__instance.IsBusyWithSequence())
+                    {
+                        for (int i = 0; i < __instance.abilities.Count; i++)
+                        {
+                            if (__instance.abilities[i].CheckActivation())
+                            {
+                                return false;
+                            }
+                        }
+                    }
+                    if (flag && __instance.inWalkZone)
+                    {
+                        if (__instance.usingEquippedMovestyle)
+                        {
+                            __instance.ActivateAbility(__instance.switchMoveStyleAbility);
+                        }
+                    }
+                    else if (__instance.switchStyleButtonNew && !__instance.switchToEquippedMovestyleLocked && !flag)
+                    {
+                        __instance.SwitchToEquippedMovestyle(!__instance.usingEquippedMovestyle, true, true, true);
+                    }
+                }
+                else
+                {
+                    __instance.ability.FixedUpdateAbility();
+                }
+                if (__instance.ability == null && flag)
+                {
+                    if (!__instance.IsBusyWithSequence() && !__instance.motor.wasGrounded && __instance.slideButtonHeld && !__instance.slideAbility.locked)
+                    {
+                        __instance.ActivateAbility(__instance.slideAbility);
+                        return false;
+                    }
+                    if (__instance.IsComboing())
+                    {
+                        __instance.DoComboTimeOut(Core.dt * MovementPlusPlugin.noAbilityComboTimeout.Value);
+                    }
+                }
             }
             return false;
         }

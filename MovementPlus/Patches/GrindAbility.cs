@@ -35,6 +35,8 @@ namespace MovementPlus.Patches
         {
             __instance.reTrickFail = false;
             __instance.trickTimer = 0f;
+            __instance.speed = Mathf.Max(MovementPlusPlugin.noAbilitySpeed, __instance.p.maxMoveSpeed);
+            __instance.speedTarget = Mathf.Max(MovementPlusPlugin.noAbilitySpeed, __instance.p.maxMoveSpeed);
         }
 
         [HarmonyPatch(typeof(GrindAbility), nameof(GrindAbility.FixedUpdateAbility))]
@@ -226,7 +228,7 @@ namespace MovementPlus.Patches
                 Vector3 normalized = Vector3.ProjectOnPlane(up, Vector3.up).normalized;
                 __instance.p.SetRotHard(Quaternion.LookRotation(normalized));
                 float num = __instance.p.jumpSpeed * 0.35f;
-                float d = Mathf.Max(__instance.p.maxMoveSpeed * 0.7f, __instance.p.GetTotalSpeed() * 0.7f);
+                float d = Mathf.Max(__instance.p.maxMoveSpeed * 0.7f, __instance.p.GetTotalSpeed(), MovementPlusPlugin.noAbilitySpeed);
                 __instance.p.SetVelocity(num * Vector3.up + normalized * d);
                 __instance.p.ActivateAbility(__instance.p.flipOutJumpAbility);
             }
@@ -366,7 +368,5 @@ namespace MovementPlus.Patches
             }
             return false;
         }
-
-
     }
 }

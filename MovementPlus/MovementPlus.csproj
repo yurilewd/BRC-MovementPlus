@@ -55,6 +55,10 @@
     <Reference Include="UnityEngine">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\BombRushCyberfunk\Bomb Rush Cyberfunk_Data\Managed\UnityEngine.dll</HintPath>
     </Reference>
+    <Reference Include="UnityEngine.AnimationModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\BombRushCyberfunk\Bomb Rush Cyberfunk_Data\Managed\UnityEngine.AnimationModule.dll</HintPath>
+    </Reference>
     <Reference Include="UnityEngine.AudioModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\BombRushCyberfunk\Bomb Rush Cyberfunk_Data\Managed\UnityEngine.AudioModule.dll</HintPath>
@@ -84,6 +88,7 @@
     <Compile Include="Patches\GrindAbility.cs" />
     <Compile Include="Patches\GroundTrickAbility.cs" />
     <Compile Include="Patches\AirDashAbility.cs" />
+    <Compile Include="Patches\HandplantAbility.cs" />
     <Compile Include="Patches\SlideAbility.cs" />
     <Compile Include="Patches\SpecialAirAbility.cs" />
     <Compile Include="Patches\Player.cs" />
