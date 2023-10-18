@@ -18,7 +18,9 @@ namespace MovementPlus
     {
         private const string MyGUID = "com.yuril.MovementPlus";
         private const string PluginName = "MovementPlus";
+
         private const string VersionString = "1.1.0";
+
 
 
         private Harmony harmony;
@@ -30,11 +32,15 @@ namespace MovementPlus
         public static float defaultVertMaxSpeed;
         public static float defaultVertTopJumpSpeed;
 
+
         public static float savedLastSpeed;
 
         public static float noAbilitySpeed;
 
         public static float timeInAir = 0f;
+
+
+         
 
 
 
@@ -161,8 +167,8 @@ namespace MovementPlus
                     BoostChanges();
                     VertChanges();
                     SaveSpeed();
-                    TimeInAir();
-                }
+                    TimeInAir()
+                }    
             }
         }
 
@@ -215,7 +221,7 @@ namespace MovementPlus
 
         private void FastFall()
         {
-            if (player.slideButtonNew && (!player.TreatPlayerAsSortaGrounded() || player.ability == player.vertAbility) && player.motor.velocity.y <= 0f && MovementPlusPlugin.canFastFall && MovementPlusPlugin.fastFallEnabled.Value)
+            if (player.slideButtonNew && !player.TreatPlayerAsSortaGrounded() && player.motor.velocity.y <= 0f && MovementPlusPlugin.canFastFall && MovementPlusPlugin.fastFallEnabled.Value)
             {
                 player.motor.SetVelocityYOneTime(Mathf.Min(player.motor.velocity.y + MovementPlusPlugin.fastFallAmount.Value, MovementPlusPlugin.fastFallAmount.Value));
                 player.ringParticles.Emit(1);
@@ -262,6 +268,7 @@ namespace MovementPlus
 
         private void VertChanges()
         {
+
             if (player.ability == player.vertAbility)
             {
                 return;
@@ -301,8 +308,20 @@ namespace MovementPlus
                 timeInAir += Core.dt;
             }
         }
+            if (MovementPlusPlugin.vertEnabled.Value)
+            {
+                player.vertMaxSpeed = Mathf.Max(defaultVertMaxSpeed, player.GetTotalSpeed());
+            }
+            if (MovementPlusPlugin.vertJumpEnabled.Value)
+            {
+                player.vertTopJumpSpeed = Mathf.Max(defaultVertTopJumpSpeed, player.GetTotalSpeed() * MovementPlusPlugin.vertJumpStrength.Value);
+            }
+        }
 
-        public static float remap(float val, float in1, float in2, float out1, float out2)
+       
+    
+
+    public static float remap(float val, float in1, float in2, float out1, float out2)
         {
             return out1 + (val - in1) * (out2 - out1) / (in2 - in1);
         }

@@ -23,6 +23,7 @@ namespace MovementPlus.Patches
                 MovementPlusPlugin.defaultVertMaxSpeed = __instance.vertMaxSpeed;
                 MovementPlusPlugin.defaultVertTopJumpSpeed = __instance.vertTopJumpSpeed;
                 __instance.motor.maxFallSpeed = MovementPlusPlugin.maxFallSpeed.Value;
+
                 __instance.wallrunAbility.lastSpeed = MovementPlusPlugin.savedLastSpeed;
                 __instance.vertBottomExitSpeedThreshold = 0f;
 
@@ -41,6 +42,7 @@ namespace MovementPlus.Patches
         [HarmonyPostfix]
         private static void Player_FixedUpdatePlayer_Postfix(Player __instance)
         {
+
            if (MovementPlusPlugin.timeInAir >= 1.5f)
             {
                 tooFast = true;
