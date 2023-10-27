@@ -19,7 +19,7 @@ namespace MovementPlus
         private const string MyGUID = "com.yuril.MovementPlus";
         private const string PluginName = "MovementPlus";
 
-        private const string VersionString = "1.1.0";
+        private const string VersionString = "1.1.1";
 
 
 
@@ -54,6 +54,7 @@ namespace MovementPlus
         public static ConfigEntry<bool> wallFrameboostEnabled;
         public static ConfigEntry<float> wallFrameboostAmount;
         public static ConfigEntry<float> wallFrameboostGrace;
+        public static ConfigEntry<bool> wallFrameboostRunoffEnabled;
 
         public static ConfigEntry<bool> superTrickEnabled;
         public static ConfigEntry<float> superTrickStrength;
@@ -89,6 +90,10 @@ namespace MovementPlus
 
         public static ConfigEntry<bool> collisionChangeEnabled;
 
+        public static ConfigEntry<float> railUpSlopeJumpStrength;
+        public static ConfigEntry<float> railDownSlopeSpeedStrength;
+        public static ConfigEntry<bool> railSlopeJumpChangeEnabled;
+
 
 
         private void Awake()
@@ -103,6 +108,7 @@ namespace MovementPlus
             wallFrameboostEnabled = Config.Bind("3:WallFrameboost", "Wall Frameboost Enabled", true, "Timing a jump as you land on a wallride generates a speed boost.");
             wallFrameboostAmount = Config.Bind("3:WallFrameboost", "Wall Frameboost Amount", 11f, "Amount of speed to add when wallride frameboosting.");
             wallFrameboostGrace = Config.Bind("3:WallFrameboost", "Wall Frameboost Grace Period", 0.1f, "Amount of time to hit a wallride frameboost.");
+            wallFrameboostRunoffEnabled = Config.Bind("3:WallFrameboost", "Wall Frameboost Runoff Enabled", false, "Running off of a wallride in the frameboost period will trigger a frameboost.");
 
             superTrickEnabled = Config.Bind("4:SuperTrickJump", "Super Trick Jump Enabled", true, "On foot grounded trick jump scales with speed.");
             superTrickStrength = Config.Bind("4:SuperTrickJump", "Super Trick Jump Strength", 0.9f, "Super trick jump multiplier.");
@@ -131,6 +137,10 @@ namespace MovementPlus
             railHardCap = Config.Bind("9:General", "Rail Hard Corner Speed Cap", 40f, "Speed cap of Hard Corners.");
             railDecc = Config.Bind("9:General", "Rail Deceleration", 0f, "Amount of deceleration rails have.");
             collisionChangeEnabled = Config.Bind("9:General", "Collision Change Enabled", true, "No longer allows you to clip through walls and other objects at high speeds.");
+            railUpSlopeJumpStrength = Config.Bind("9:General", "Rail Up Slope Jump Strength", 1.1f, "Multiplier for the jump height while grinding up a slope.");
+            railDownSlopeSpeedStrength = Config.Bind("9:General", "Rail Down Slope Speed Strength", 1f, "Multiplier for the jump speed while grinding down a slope.");
+            railSlopeJumpChangeEnabled = Config.Bind("9:General", "Rail Slope Jump Change Enabled", true, "Jumping on a sloped rail will give speed if going down and height if going up.");
+
 
             boostComboTimeout = Config.Bind("10:ComboTimer", "Boost Combo Timer", 0.15f, "Duration of combo timer while boosting. Higher value means less time.");
             boostComboJumpAmount = Config.Bind("9:ComboTimer", "Boost Combo Timer Jump Cost", 0.0625f, "Amount to remove from combo while jumping in a boost.");
@@ -321,5 +331,11 @@ namespace MovementPlus
         {
             return out1 + (val - in1) * (out2 - out1) / (in2 - in1);
         }
+
+        public static float TableCurve(float a, float b, float c, float x)
+        {
+            return (((a + b) * x) / (b + x) + c);
+        }
+
     }
 }

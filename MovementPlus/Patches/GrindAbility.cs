@@ -264,6 +264,17 @@ namespace MovementPlus.Patches
                 {
                     __instance.p.StopCurrentAbility();
                 }
+
+                if (MovementPlusPlugin.railSlopeJumpChangeEnabled.Value)
+                {
+                    var jumpMath = MovementPlusPlugin.TableCurve(0f, 32f, 7.5f, __instance.p.GetForwardSpeed());
+                    var speedMath = MovementPlusPlugin.TableCurve(5f, 32f, 7.5f, __instance.p.GetForwardSpeed());
+
+                    float jumpAddYValue = (Vector3.Dot(Vector3.up, __instance.p.motor.velocity.normalized) * (jumpMath)) * MovementPlusPlugin.railUpSlopeJumpStrength.Value;
+                    float jumpAddForwardValue = (Vector3.Dot(Vector3.up, __instance.p.motor.velocity.normalized) * (-speedMath) * MovementPlusPlugin.railDownSlopeSpeedStrength.Value);
+                    d += Mathf.Max(jumpAddForwardValue, 0f);
+                    num = Mathf.Max(jumpAddYValue, num);
+                }
                 __instance.p.SetVelocity(num * Vector3.up + a * d);
             }
             __instance.p.ForceUnground(true);

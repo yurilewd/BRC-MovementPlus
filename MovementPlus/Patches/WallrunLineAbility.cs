@@ -25,7 +25,7 @@ namespace MovementPlus.Patches
         [HarmonyPrefix]
         private static bool WallrunLineAbility_OnStartAbility_Prefix(WallrunLineAbility __instance)
         {
-            __instance.wallRunMoveSpeed = Mathf.Max(__instance.p.GetForwardSpeed(), defaultMoveSpeed);
+            __instance.wallRunMoveSpeed = Mathf.Max(__instance.p.GetForwardSpeed(), 13f);
             __instance.p.motor.HaveCollision(false);
             //__instance.p.SetVelocity(Vector3.zero);
             __instance.scoreTimer = 0f;
@@ -84,20 +84,24 @@ namespace MovementPlus.Patches
             Vector3 vector;
             if (__instance.p.abilityTimer <= MovementPlusPlugin.railFrameboostGrace.Value)
             {
-                vector = direction * (Mathf.Max(__instance.lastSpeed, __instance.customVelocity.magnitude) + MovementPlusPlugin.wallFrameboostAmount.Value) + __instance.wallrunFaceNormal * 1f;
-                __instance.p.DoTrick(Player.TrickType.WALLRUN, "Frameboost", 0);
+                if (MovementPlusPlugin.railFrameboostEnabled.Value && MovementPlusPlugin.wallFrameboostRunoffEnabled.Value)
+                {
+                    vector = direction * (Mathf.Max(__instance.lastSpeed, __instance.customVelocity.magnitude) + MovementPlusPlugin.wallFrameboostAmount.Value) + __instance.wallrunFaceNormal * 1f;
+                    __instance.p.DoTrick(Player.TrickType.WALLRUN, "Frameboost", 0);
+                }
+                else
+                {
+                    vector = direction * (Mathf.Max(__instance.lastSpeed, __instance.customVelocity.magnitude)) + __instance.wallrunFaceNormal * 1f;
+                }
                 __instance.lastSpeed = Mathf.Max(savedSpeed, __instance.lastSpeed);
                 savedSpeed = __instance.lastSpeed;
             }  
             else
             {
-                vector = direction * (Mathf.Max(__instance.lastSpeed, __instance.customVelocity.magnitude)) + __instance.wallrunFaceNormal * 1f;
+                vector = direction * (Mathf.Max(__instance.lastSpeed, __instance.customVelocity.magnitude, 13f)) + __instance.wallrunFaceNormal * 1f;
                 savedSpeed = __instance.lastSpeed;
             }
             __instance.p.SetVelocity(vector);
-
-            
-
             __instance.p.SetRotHard(Quaternion.LookRotation(vector.normalized));
             __instance.p.FlattenRotationHard();
             if (__instance.p.boosting)

@@ -14,12 +14,7 @@ namespace MovementPlus.Patches
         {
             if (MovementPlusPlugin.superTrickEnabled.Value)
             {
-                float a = 9f;
-                float b = 32f;
-                float c = -1.4f;
-                float x = __instance.p.GetForwardSpeed();
-
-                var speedmath = (((a + b) * x) / (b + x) + c) * MovementPlusPlugin.superTrickStrength.Value;
+                var speedmath = MovementPlusPlugin.TableCurve(9f, 32f, -1.4f, __instance.p.GetForwardSpeed()) * MovementPlusPlugin.superTrickStrength.Value;
 
                 __instance.jumpSpeed = (Mathf.Max(11.5f, speedmath));
 
