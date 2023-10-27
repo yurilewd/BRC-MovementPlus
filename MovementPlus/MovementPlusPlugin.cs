@@ -19,7 +19,7 @@ namespace MovementPlus
         private const string MyGUID = "com.yuril.MovementPlus";
         private const string PluginName = "MovementPlus";
 
-        private const string VersionString = "1.1.1";
+        private const string VersionString = "1.1.2";
 
 
 
@@ -74,6 +74,8 @@ namespace MovementPlus
         public static ConfigEntry<bool> vertJumpEnabled;
         public static ConfigEntry<float> vertJumpStrength;
         public static ConfigEntry<float> vertJumpCap;
+        public static ConfigEntry<float> vertBottomExitSpeed;
+        public static ConfigEntry<float> vertBottomExitSpeedCap;
 
         public static ConfigEntry<float> maxFallSpeed;
         public static ConfigEntry<float> airDashSpeed;
@@ -128,6 +130,8 @@ namespace MovementPlus
             vertJumpEnabled = Config.Bind("8:Vert", "Vert Ramp Jump Change Enabled", true, "Vert ramps jump height scales with your speed.");
             vertJumpStrength = Config.Bind("8:Vert", "Vert Ramp Jump Height Strength", 0.6f, "Vert jump heght multiplier.");
             vertJumpCap = Config.Bind("8:Vert", "Vert Ramp Jump Height Cap", 50f, "Cap for vert maximum jump height");
+            vertBottomExitSpeed = Config.Bind("8:Vert", "Vert Bottom Exit Speed", 10f, "Bonus speed you get at the bottom of vert ramps.");
+            vertBottomExitSpeedCap = Config.Bind("8:Vert", "Vert Bottom Exit Speed Cap", 100f, "The maximum amount of speed you can get from the bottom of vert ramps.");
 
             maxFallSpeed = Config.Bind("9:General", "Max Fall Speed", 40f, "Maximum speed you can fall.");
             airDashSpeed = Config.Bind("9:General", "Air Dash Retain Speed", 0.5f, "Percent of speed to maintain when changing direction with an air dash.");
@@ -285,8 +289,10 @@ namespace MovementPlus
             }
             if (MovementPlusPlugin.vertEnabled.Value)
             {
+                var x = player.GetTotalSpeed() + MovementPlusPlugin.vertBottomExitSpeed.Value;
+                x = Mathf.Min(x, MovementPlusPlugin.vertBottomExitSpeedCap.Value);
                 player.vertMaxSpeed = Mathf.Max(defaultVertMaxSpeed, player.GetTotalSpeed());
-                player.vertBottomExitSpeed = player.GetTotalSpeed() + 7f;
+                player.vertBottomExitSpeed = x;
             }
             if (MovementPlusPlugin.vertJumpEnabled.Value)
             {
@@ -316,14 +322,6 @@ namespace MovementPlus
             else
             {
                 timeInAir += Core.dt;
-            }
-            if (MovementPlusPlugin.vertEnabled.Value)
-            {
-                player.vertMaxSpeed = Mathf.Max(defaultVertMaxSpeed, player.GetTotalSpeed());
-            }
-            if (MovementPlusPlugin.vertJumpEnabled.Value)
-            {
-                player.vertTopJumpSpeed = Mathf.Max(defaultVertTopJumpSpeed, player.GetTotalSpeed() * MovementPlusPlugin.vertJumpStrength.Value);
             }
         }
 

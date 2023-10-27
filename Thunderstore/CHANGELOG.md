@@ -1,9 +1,13 @@
+## 1.1.2
+The Vert bugs now have a cap and config values for it
+
+
 ## 1.1.1
 Wallride frameboost runoff now disabled by default, added config value
 
 Fixed a wallride issue
 
-New sloped rail mechanic, jumping on a rail sloped up will give a higher jump and jumping on a downward slope will give a boost of speed.
+New sloped rail mechanic, jumping on a rail sloped up will give a higher jump and jumping on a downward slope will give a boost of speed
 
 
 ## 1.1.0
