@@ -83,6 +83,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="NewAbility\ButtslapAbility.cs" />
+    <Compile Include="Config\MyConfig.cs" />
     <Compile Include="MovementPlusPlugin.cs" />
     <Compile Include="Patches\BoostAbility.cs" />
     <Compile Include="Patches\GrindAbility.cs" />
@@ -90,6 +92,7 @@
     <Compile Include="Patches\AirDashAbility.cs" />
     <Compile Include="Patches\HandplantAbility.cs" />
     <Compile Include="Patches\SlideAbility.cs" />
+    <Compile Include="Patches\LedgeClimbAbility.cs" />
     <Compile Include="Patches\SpecialAirAbility.cs" />
     <Compile Include="Patches\Player.cs" />
     <Compile Include="Patches\WallrunLineAbility.cs" />
@@ -99,5 +102,8 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>COPY /y "C:\Users\yuril\Documents\BRC-Mods\Workspace\MovementPlus\MovementPlus\obj\Debug\MovementPlus.dll" "C:\Program Files (x86)\Steam\steamapps\common\BombRushCyberfunk\BepInEx\plugins\MovementPlus.dll"</PostBuildEvent>
+  </PropertyGroup>
+  <PropertyGroup>
+    <LangVersion>preview</LangVersion>
   </PropertyGroup>
 </Project>

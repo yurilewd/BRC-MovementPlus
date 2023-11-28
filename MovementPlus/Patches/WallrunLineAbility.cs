@@ -1,13 +1,12 @@
 ﻿using HarmonyLib;
 using Reptile;
-using Unity;
 using UnityEngine;
 
 namespace MovementPlus.Patches
 {
     internal static class WallrunLineAbilityPatch
     {
-
+        private static readonly MyConfig ConfigSettings = MovementPlusPlugin.ConfigSettings;
 
         private static float defaultMoveSpeed;
         private static float savedSpeed;
@@ -21,72 +20,19 @@ namespace MovementPlus.Patches
             defaultMoveSpeed = __instance.wallRunMoveSpeed;
         }
 
-        [HarmonyPatch(typeof(WallrunLineAbility), nameof(WallrunLineAbility.OnStartAbility))]
-        [HarmonyPrefix]
-        private static bool WallrunLineAbility_OnStartAbility_Prefix(WallrunLineAbility __instance)
-        {
-            __instance.wallRunMoveSpeed = Mathf.Max(__instance.p.GetForwardSpeed(), 13f);
-            __instance.p.motor.HaveCollision(false);
-            //__instance.p.SetVelocity(Vector3.zero);
-            __instance.scoreTimer = 0f;
-            __instance.wallRunUpDownSpeed = 0f;
-            if (Vector3.Dot(__instance.p.tf.right, __instance.wallrunFaceNormal) >= 0f)
-            {
-                __instance.animSide = Side.LEFT;
-            }
-            else
-            {
-                __instance.animSide = Side.RIGHT;
-            }
-            if (__instance.animSide == Side.RIGHT)
-            {
-                __instance.p.PlayAnim(__instance.wallRunRightHash, false, false, -1f);
-            }
-            else
-            {
-                __instance.p.PlayAnim(__instance.wallRunLeftHash, false, false, -1f);
-            }
-            if (__instance.p.moveStyle == MoveStyle.ON_FOOT)
-            {
-                __instance.trickName = "Wallrun";
-            }
-            else
-            {
-                __instance.trickName = "Wallride";
-            }
-            bool flag = __instance.p.UseColliderInCombo(__instance.wallrunLine.GetComponent<Collider>());
-            __instance.p.DoTrick(Player.TrickType.WALLRUN, __instance.trickName + (flag ? " (New!)" : ""), 0);
-            __instance.betweenLines = false;
-            __instance.SetNewNodes(__instance.wallrunLine.node0, __instance.wallrunLine.node1, __instance.wallrunFaceNormal, false);
-            __instance.SetHeightLimits(__instance.wallrunLine);
-            __instance.speed = Mathf.Max(__instance.p.GetForwardSpeed(), __instance.p.boosting ? __instance.p.boostSpeed : __instance.wallRunMoveSpeed);
-            if (__instance.p.boosting)
-            {
-                if (!__instance.p.isAI)
-                {
-                    Core.Instance.GameInput.SetVibrationOnCurrentController(0.19f, 0.19f, 0.1f, 0);
-                }
-                __instance.p.AudioManager.PlaySfxGameplayLooping(SfxCollectionID.GenericMovementSfx, AudioClipID.ultraBoostLoop, __instance.p.playerUltraBoostLoopAudioSource, 0f, 0f);
-            }
-            __instance.p.AudioManager.PlaySfxGameplay(SfxCollectionID.GenericMovementSfx, AudioClipID.wallrunStart, __instance.p.playerOneShotAudioSource, 0f);
-            __instance.p.AudioManager.PlaySfxGameplayLooping(__instance.p.moveStyle, AudioClipID.wallrunLoop, __instance.p.playerMovementLoopAudioSource, 0f, 0f);
-            if (__instance.journey > 1f)
-            {
-                __instance.AtEndOfWallrunLine();
-            }
-            return false;
-        }
+
 
         [HarmonyPatch(typeof(WallrunLineAbility), nameof(WallrunLineAbility.RunOff))]
         [HarmonyPrefix]
         private static bool WallrunLineAbility_RunOff_Prefix(WallrunLineAbility __instance, Vector3 direction)
         {
             Vector3 vector;
-            if (__instance.p.abilityTimer <= MovementPlusPlugin.railFrameboostGrace.Value)
+            if (__instance.p.abilityTimer <= ConfigSettings.WallFrameboost.Grace.Value)
             {
-                if (MovementPlusPlugin.railFrameboostEnabled.Value && MovementPlusPlugin.wallFrameboostRunoffEnabled.Value)
+                if (ConfigSettings.WallFrameboost.Enabled.Value && ConfigSettings.WallFrameboost.RunoffEnabled.Value)
                 {
-                    vector = direction * (Mathf.Max(__instance.lastSpeed, __instance.customVelocity.magnitude) + MovementPlusPlugin.wallFrameboostAmount.Value) + __instance.wallrunFaceNormal * 1f;
+                    float newSpeed = MovementPlusPlugin.LosslessClamp(Mathf.Max(__instance.lastSpeed, __instance.customVelocity.magnitude), ConfigSettings.WallFrameboost.Amount.Value, ConfigSettings.WallFrameboost.Cap.Value);
+                    vector = direction * (newSpeed) + __instance.wallrunFaceNormal * 1f;
                     __instance.p.DoTrick(Player.TrickType.WALLRUN, "Frameboost", 0);
                 }
                 else
@@ -95,7 +41,7 @@ namespace MovementPlus.Patches
                 }
                 __instance.lastSpeed = Mathf.Max(savedSpeed, __instance.lastSpeed);
                 savedSpeed = __instance.lastSpeed;
-            }  
+            }
             else
             {
                 vector = direction * (Mathf.Max(__instance.lastSpeed, __instance.customVelocity.magnitude, 13f)) + __instance.wallrunFaceNormal * 1f;
@@ -116,24 +62,90 @@ namespace MovementPlus.Patches
         }
 
         [HarmonyPatch(typeof(WallrunLineAbility), nameof(WallrunLineAbility.FixedUpdateAbility))]
-        [HarmonyPostfix]
-        private static void WallrunLineAbility_FixedUpdateAbility_Postfix(WallrunLineAbility __instance)
+        [HarmonyPrefix]
+        private static bool WallrunLineAbility_FixedUpdateAbility_Prefix(WallrunLineAbility __instance)
         {
+            __instance.UpdateBoostpack();
+            __instance.scoreTimer += Core.dt;
+            if (__instance.p.abilityTimer <= 0.025f && !__instance.p.isJumping)
+            {
+                float newSpeed = MovementPlusPlugin.LosslessClamp(MovementPlusPlugin.AverageForwardSpeed(), MovementPlusPlugin.AverageTotalSpeed() - MovementPlusPlugin.AverageForwardSpeed(), ConfigSettings.WallGeneral.wallTotalSpeedCap.Value);
+                __instance.speed = Mathf.Max(newSpeed, __instance.wallRunMoveSpeed);
+            }
+            if (__instance.scoreTimer > 0.7f)
+            {
+                __instance.scoreTimer = 0f;
+                __instance.p.DoTrick(Player.TrickType.WALLRUN, __instance.trickName, 0);
+            }
+            if (__instance.speed > __instance.wallRunMoveSpeed)
+            {
+                __instance.speed = Mathf.Max(__instance.wallRunMoveSpeed, __instance.speed - __instance.wallrunDecc * Core.dt);
+            }
+            if (__instance.p.boosting)
+            {
+                __instance.speed = MovementPlusPlugin.LosslessClamp(__instance.speed, ConfigSettings.BoostGeneral.WallAmount.Value * Core.dt, ConfigSettings.BoostGeneral.WallCap.Value);
+                //__instance.speed = Mathf.Max(__instance.speed + ConfigSettings.BoostGeneral.WallAmount.Value * Core.dt, MovementPlusPlugin.defaultBoostSpeed);
+            }
+            __instance.journey += __instance.speed / __instance.nodeToNodeLength * Core.dt;
+            __instance.wallrunPos = Vector3.LerpUnclamped(__instance.prevNode.position, __instance.nextNode.position, __instance.journey);
+            __instance.dirToNextNode = (__instance.nextNode.position - __instance.prevNode.position).normalized;
+            __instance.wallrunFaceNormal = __instance.wallrunLine.transform.forward;
+            float num = -__instance.p.motor.GetCapsule().height * 1f;
+            if (__instance.wallrunHeight > num)
+            {
+                if (__instance.wallRunUpDownSpeed > 0f)
+                {
+                    __instance.wallRunUpDownSpeed = Mathf.Max(__instance.wallRunUpDownSpeed - __instance.wallRunUpDownDecc * Core.dt, 0f);
+                }
+                else if (__instance.wallRunUpDownSpeed < 0f)
+                {
+                    __instance.wallRunUpDownSpeed = Mathf.Min(__instance.wallRunUpDownSpeed + __instance.wallRunUpDownDecc * Core.dt, 0f);
+                }
+            }
+            else
+            {
+                __instance.wallRunUpDownSpeed = __instance.wallRunUpDownMaxSpeed;
+            }
+            __instance.wallrunHeight += __instance.wallRunUpDownSpeed * Core.dt;
+            Vector3 vector = __instance.wallrunPos + __instance.wallrunHeight * Vector3.up + __instance.wallrunFaceNormal * __instance.p.motor.GetCapsule().radius;
+            __instance.customVelocity = (vector - __instance.p.tf.position) / Core.dt;
+            __instance.lastSpeed = __instance.customVelocity.magnitude;
+            __instance.p.lastElevationForSlideBoost = vector.y;
+            Vector3 normalized = Vector3.RotateTowards(__instance.p.dir, __instance.dirToNextNode, __instance.rotSpeed * Core.dt, 1000f).normalized;
+            if (__instance.p.smoothRotation)
+            {
+                __instance.p.SetRotation(normalized);
+            }
+            else
+            {
+                __instance.p.SetRotHard(normalized);
+            }
+            if (__instance.p.jumpButtonNew && (__instance.p.abilityTimer > __instance.minDurationBeforeJump || __instance.p.isAI))
+            {
+                __instance.Jump();
+            }
+            else if (__instance.journey > 1f)
+            {
+                __instance.AtEndOfWallrunLine();
+            }
+            __instance.p.SetVisualRotLocal0();
             MovementPlusPlugin.savedLastSpeed = __instance.lastSpeed;
-            if (__instance.p.abilityTimer > MovementPlusPlugin.wallFrameboostGrace.Value && MovementPlusPlugin.wallFrameboostEnabled.Value)
+            if (__instance.p.abilityTimer > ConfigSettings.WallFrameboost.Grace.Value && ConfigSettings.WallFrameboost.Enabled.Value)
             {
                 savedSpeed = __instance.lastSpeed;
-            }    
+            }
+            return false;
         }
 
         [HarmonyPatch(typeof(WallrunLineAbility), nameof(WallrunLineAbility.Jump))]
         [HarmonyPostfix]
         private static void WallrunLineAbility_Jump_Postfix(WallrunLineAbility __instance)
         {
-            if (__instance.p.abilityTimer <= MovementPlusPlugin.wallFrameboostGrace.Value && MovementPlusPlugin.wallFrameboostEnabled.Value)
+            if (__instance.p.abilityTimer <= ConfigSettings.WallFrameboost.Grace.Value && ConfigSettings.WallFrameboost.Enabled.Value)
             {
-                __instance.lastSpeed = __instance.lastSpeed + MovementPlusPlugin.wallFrameboostAmount.Value;
-                __instance.p.SetForwardSpeed(__instance.p.GetForwardSpeed() + MovementPlusPlugin.wallFrameboostAmount.Value);
+                float newSpeed = MovementPlusPlugin.LosslessClamp(Mathf.Max(MovementPlusPlugin.AverageForwardSpeed(), __instance.p.GetForwardSpeed()), ConfigSettings.WallFrameboost.Amount.Value, ConfigSettings.WallFrameboost.Cap.Value);
+                __instance.lastSpeed += ConfigSettings.WallFrameboost.Amount.Value;
+                __instance.p.SetForwardSpeed(newSpeed);
                 __instance.p.DoTrick(Player.TrickType.WALLRUN, "Frameboost", 0);
                 __instance.lastSpeed = Mathf.Max(savedSpeed, __instance.lastSpeed);
                 savedSpeed = __instance.lastSpeed;

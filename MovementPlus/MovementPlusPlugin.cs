@@ -1,199 +1,95 @@
 ﻿using BepInEx;
-using BepInEx.Configuration;
-using BepInEx.Logging;
 using HarmonyLib;
-using MovementPlus.Patches;
 using Reptile;
 using System.Collections.Generic;
+using UnityEngine;
 using System.Linq;
 using System.Reflection;
-using UnityEngine;
-
 
 namespace MovementPlus
 {
-
     [BepInPlugin(MyGUID, PluginName, VersionString)]
     public class MovementPlusPlugin : BaseUnityPlugin
     {
         private const string MyGUID = "com.yuril.MovementPlus";
         private const string PluginName = "MovementPlus";
+        private const string VersionString = "2.0.0";
 
-        private const string VersionString = "1.1.2";
+        private       Harmony  harmony;
+        public static Player   player;
+        public static MyConfig ConfigSettings;
 
-
-
-        private Harmony harmony;
-        public static Player player;
-
-        public static bool canFastFall;
-        public static float defaultBoostSpeed;
-
-        public static float defaultVertMaxSpeed;
-        public static float defaultVertTopJumpSpeed;
-
-
-        public static float savedLastSpeed;
-
-        public static float noAbilitySpeed;
-
-        public static float timeInAir = 0f;
-
-
-         
-
-
-
-        public static ConfigEntry<bool> railGoonEnabled;
-        public static ConfigEntry<float> railGoonStrength;
-
-        public static ConfigEntry<bool> railFrameboostEnabled;
-        public static ConfigEntry<float> railFrameboostAmount;
-        public static ConfigEntry<float> railFrameboostGrace;
-
-        public static ConfigEntry<bool> wallFrameboostEnabled;
-        public static ConfigEntry<float> wallFrameboostAmount;
-        public static ConfigEntry<float> wallFrameboostGrace;
-        public static ConfigEntry<bool> wallFrameboostRunoffEnabled;
-
-        public static ConfigEntry<bool> superTrickEnabled;
-        public static ConfigEntry<float> superTrickStrength;
-
-        public static ConfigEntry<bool> perfectManualEnabled;
-        public static ConfigEntry<float> perfectManualAmount;
-        public static ConfigEntry<float> perfectManualCap;
-        public static ConfigEntry<float> perfectManualGrace;
-
-        public static ConfigEntry<float> superSlideSpeed;
-        public static ConfigEntry<float> superSlideIncrease;
-
-        public static ConfigEntry<bool> fastFallEnabled;
-        public static ConfigEntry<float> fastFallAmount;
-
-        public static ConfigEntry<bool> vertEnabled;
-        public static ConfigEntry<bool> vertJumpEnabled;
-        public static ConfigEntry<float> vertJumpStrength;
-        public static ConfigEntry<float> vertJumpCap;
-        public static ConfigEntry<float> vertBottomExitSpeed;
-        public static ConfigEntry<float> vertBottomExitSpeedCap;
-
-        public static ConfigEntry<float> maxFallSpeed;
-        public static ConfigEntry<float> airDashSpeed;
-        public static ConfigEntry<bool> boostChangeEnabled;
-        public static ConfigEntry<float> groundTrickDecc;
-        public static ConfigEntry<float> railHardAmount;
-        public static ConfigEntry<float> railHardCap;
-        public static ConfigEntry<float> railDecc;
-
-        public static ConfigEntry<float> boostComboTimeout;
-        public static ConfigEntry<float> boostComboJumpAmount;
-
-        public static ConfigEntry<float> noAbilityComboTimeout;
-
-        public static ConfigEntry<bool> collisionChangeEnabled;
-
-        public static ConfigEntry<float> railUpSlopeJumpStrength;
-        public static ConfigEntry<float> railDownSlopeSpeedStrength;
-        public static ConfigEntry<bool> railSlopeJumpChangeEnabled;
-
+        public static bool           canFastFall;                   //make sure we don't fast fall twice
+        public static float          defaultBoostSpeed;             //vanilla boost speed
+        public static float          defaultVertMaxSpeed;           //vanilla vert speed
+        public static float          defaultVertTopJumpSpeed;       //vanilla vert jump height
+        public static float          defaultJumpSpeed;              //vanilla jump height
+        public static float          savedLastSpeed;                //wallrun last speed
+        public static float          noAbilitySpeed;                //speed used for vertical rails
+        public static float          timeInAir = 0f;                //used for on foot hard landing
+        public static Queue<float>   forwardSpeeds;                 //container for average forward speed
+        public static Queue<float>   totalSpeeds;                   //container for average total speed
+        public static Queue<Vector3> forwardDirs;                   //container for player forward dir
+        public static float          averageSpeedTimer = 0f;        //timer for both average speeds
+        public static float          averageForwardTimer = 0f;      //timer for average player forward dir
+        public static bool           hasGooned = false;             //make sure we only rail goon once
+        public static bool           railGoonAppllied = false;      //make sure the goon boost is only applied once
+        public static bool           jumpedFromRail = false;        //cursed rail check
+        public static float          jumpedFromRailTimer = 0f;      //cursed rail timer
+        private       bool           slideBoost = false;            //perfect manual
+        private       float          slideTimer = 0f;               //perfect manual timer
+        private       bool           slideTimerStarted = false;     //timer started
 
 
         private void Awake()
         {
-            railGoonEnabled = Config.Bind("1:RailGoon", "Rail Goon Enabled", true, "Timing a boost at the start of rails results in a large speed boost.");
-            railGoonStrength = Config.Bind("1:RailGoon", "Rail Goon Strength", 0.9f, "Rail goon multiplier.");
-
-            railFrameboostEnabled = Config.Bind("2:RailFrameboost", "Rail Frameboost Enabled", true, "Timing a jump as you land on a rail generates a speed boost.");
-            railFrameboostAmount = Config.Bind("2:RailFrameboost", "Rail Frameboost Amount", 5f, "Amount of speed to add when rail frameboosting.");
-            railFrameboostGrace = Config.Bind("2:RailFrameboost", "Rail Frameboost Grace Period", 0.1f, "Amount of time to hit a rail frameboost.");
-
-            wallFrameboostEnabled = Config.Bind("3:WallFrameboost", "Wall Frameboost Enabled", true, "Timing a jump as you land on a wallride generates a speed boost.");
-            wallFrameboostAmount = Config.Bind("3:WallFrameboost", "Wall Frameboost Amount", 11f, "Amount of speed to add when wallride frameboosting.");
-            wallFrameboostGrace = Config.Bind("3:WallFrameboost", "Wall Frameboost Grace Period", 0.1f, "Amount of time to hit a wallride frameboost.");
-            wallFrameboostRunoffEnabled = Config.Bind("3:WallFrameboost", "Wall Frameboost Runoff Enabled", false, "Running off of a wallride in the frameboost period will trigger a frameboost.");
-
-            superTrickEnabled = Config.Bind("4:SuperTrickJump", "Super Trick Jump Enabled", true, "On foot grounded trick jump scales with speed.");
-            superTrickStrength = Config.Bind("4:SuperTrickJump", "Super Trick Jump Strength", 0.9f, "Super trick jump multiplier.");
-
-            perfectManualEnabled = Config.Bind("5:PerfectManual", "Perfect Manual Enabled", true, "Timing a manual press just before landing results in a speed boost.");
-            perfectManualAmount = Config.Bind("5:PerfectManual", "Perfect Manual Amount", 7f, "Amount of speed to add when landing a perfect manual.");
-            perfectManualCap = Config.Bind("5:PerfectManual", "Perfect Manual Speed Cap", 23f, "Speed cap of the perfect manual.");
-            perfectManualGrace = Config.Bind("5:PerfectManual", "Perfect Manual Grace Period", 0.1f, "The amount of time to land a perfect manual.");
-
-            superSlideSpeed = Config.Bind("6:SuperSlide", "Super Slide Speed", 25f, "Base speed for slide track sliding.");
-            superSlideIncrease = Config.Bind("6:SuperSlide", "Super Slide Speed Increase Over Time", 0.15f, "Speed to gain while sliding on slide tracks.");
-
-            fastFallEnabled = Config.Bind("7:FastFall", "Fast Fall Enabled", true, "Pressing the manual button while moving down will launch you downwards.");
-            fastFallAmount = Config.Bind("7:FastFall", "Fast Fall Amount", -13f, "Fast fall speed.");
-
-            vertEnabled = Config.Bind("8:Vert", "Vert Ramp Speed Change Enabled", true, "Vert ramps scale with your speed instead of just being a flat speed.");
-            vertJumpEnabled = Config.Bind("8:Vert", "Vert Ramp Jump Change Enabled", true, "Vert ramps jump height scales with your speed.");
-            vertJumpStrength = Config.Bind("8:Vert", "Vert Ramp Jump Height Strength", 0.6f, "Vert jump heght multiplier.");
-            vertJumpCap = Config.Bind("8:Vert", "Vert Ramp Jump Height Cap", 50f, "Cap for vert maximum jump height");
-            vertBottomExitSpeed = Config.Bind("8:Vert", "Vert Bottom Exit Speed", 10f, "Bonus speed you get at the bottom of vert ramps.");
-            vertBottomExitSpeedCap = Config.Bind("8:Vert", "Vert Bottom Exit Speed Cap", 100f, "The maximum amount of speed you can get from the bottom of vert ramps.");
-
-            maxFallSpeed = Config.Bind("9:General", "Max Fall Speed", 40f, "Maximum speed you can fall.");
-            airDashSpeed = Config.Bind("9:General", "Air Dash Retain Speed", 0.5f, "Percent of speed to maintain when changing direction with an air dash.");
-            boostChangeEnabled = Config.Bind("9:General", "Boost Change Enabled", true, "Boost scales with total speed.");
-            groundTrickDecc = Config.Bind("9:General", "Ground Trick Deceleration", 1f, "Amount of deceleration ground tricks have.");
-            railHardAmount = Config.Bind("9:General", "Rail Hard Corner Amount", 1f, "Amount of speed to add per hard corner.");
-            railHardCap = Config.Bind("9:General", "Rail Hard Corner Speed Cap", 40f, "Speed cap of Hard Corners.");
-            railDecc = Config.Bind("9:General", "Rail Deceleration", 0f, "Amount of deceleration rails have.");
-            collisionChangeEnabled = Config.Bind("9:General", "Collision Change Enabled", true, "No longer allows you to clip through walls and other objects at high speeds.");
-            railUpSlopeJumpStrength = Config.Bind("9:General", "Rail Up Slope Jump Strength", 1.1f, "Multiplier for the jump height while grinding up a slope.");
-            railDownSlopeSpeedStrength = Config.Bind("9:General", "Rail Down Slope Speed Strength", 1f, "Multiplier for the jump speed while grinding down a slope.");
-            railSlopeJumpChangeEnabled = Config.Bind("9:General", "Rail Slope Jump Change Enabled", true, "Jumping on a sloped rail will give speed if going down and height if going up.");
-
-
-            boostComboTimeout = Config.Bind("10:ComboTimer", "Boost Combo Timer", 0.15f, "Duration of combo timer while boosting. Higher value means less time.");
-            boostComboJumpAmount = Config.Bind("9:ComboTimer", "Boost Combo Timer Jump Cost", 0.0625f, "Amount to remove from combo while jumping in a boost.");
-
-            noAbilityComboTimeout = Config.Bind("9:ComboTimer", "No Ability Combo Timer", 6.5f, "Duration of combo timer while not boosting or using a manual. Higher value means less time.");
-
-
-
-
             harmony = new Harmony(MyGUID);
-            harmony.PatchAll(typeof(WallrunLineAbilityPatch));
-            harmony.PatchAll(typeof(PlayerPatch));
-            harmony.PatchAll(typeof(BoostAbilityPatch));
-            harmony.PatchAll(typeof(GrindAbilityPatch));
-            harmony.PatchAll(typeof(SpecialAirAbilityPatch));
-            harmony.PatchAll(typeof(GroundTrickAbilityPatch));
-            harmony.PatchAll(typeof(SlideAbilityPatch));
-            harmony.PatchAll(typeof(AirDashAbilityPatch));
-            harmony.PatchAll(typeof(HandplantAbilityPatch));
+            PatchAllInNamespace(harmony, "MovementPlus.Patches");
+            ConfigSettings    = new MyConfig(Config);
 
+            forwardSpeeds     = new Queue<float>();
+            totalSpeeds       = new Queue<float>();
+            forwardDirs       = new Queue<Vector3>();
+            averageSpeedTimer = 0f;
 
             Logger.LogInfo($"MovementPlus has been loaded!");
         }
 
+       
 
         private void FixedUpdate()
         {
             if (player != null)
             {
-                if (MovementPlusPlugin.perfectManualEnabled.Value)
+                FastFall();
+                VertChanges();
+                BoostChanges();
+                SaveSpeed();
+                TimeInAir();
+                LogSpeed(ConfigSettings.Misc.averageSpeedTimer.Value);
+                LogForward(0.032f);
+                JustJumpedFromRail();
+                SpeedLimit();
+
+                if (ConfigSettings.PerfectManual.Enabled.Value)
                 {
-                    SlideBoost();
-                    FastFall();
-                    BoostChanges();
-                    VertChanges();
-                    SaveSpeed();
-                    TimeInAir();
-                }    
+                    PerfectManual();
+                }
+            }
+        }
+        public static void PatchAllInNamespace(Harmony harmony, string namespaceName)
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            var types = assembly.GetTypes().Where(t => t.Namespace == namespaceName);
+            foreach (var type in types)
+            {
+                harmony.PatchAll(type);
             }
         }
 
-
-        private bool slideBoost = false;
-        private float slideTimer = 0f;
-        private bool slideTimerStarted = false;
-        private void SlideBoost()
+        private void PerfectManual()
         {
-
-            if (player.IsGrounded() == false)
+            if (!player.IsGrounded())
             {
                 slideBoost = false;
             }
@@ -208,36 +104,31 @@ namespace MovementPlus
             {
                 slideTimer += Time.deltaTime;
 
-                if (player.IsGrounded() && player.timeGrounded <= perfectManualGrace.Value && slideBoost == false)
+                if (player.IsGrounded() && player.timeGrounded <= ConfigSettings.PerfectManual.Grace.Value && !slideBoost)
                 {
-                    if (player.GetForwardSpeed() + perfectManualAmount.Value >= perfectManualCap.Value)
-                    {
-                        if (player.GetForwardSpeed() <= perfectManualCap.Value)
-                        {
-                            player.SetForwardSpeed(perfectManualCap.Value);
-                        }
-                    }
-                    else
-                    {
-                        player.SetForwardSpeed(player.GetForwardSpeed() + perfectManualAmount.Value);
-                    }
-                    slideBoost = true;
-                    player.CreateHighJumpDustEffect(new Vector3(0f, 0f, 0f));
-                    player.DoTrick(Player.TrickType.GROUND, "Slide Boost", 1);
+                    DoPerfectManual();
                 }
 
-                if (slideTimer >= perfectManualGrace.Value)
+                if (slideTimer >= ConfigSettings.PerfectManual.Grace.Value)
                 {
                     slideTimerStarted = false;
                 }
             }
         }
 
+        private void DoPerfectManual()
+        {
+            player.SetForwardSpeed(LosslessClamp(AverageForwardSpeed(), ConfigSettings.PerfectManual.Amount.Value, ConfigSettings.PerfectManual.Cap.Value));
+            slideBoost = true;
+            player.CreateHighJumpDustEffect(player.tf.up);
+            player.DoTrick(Player.TrickType.GROUND, "Perfect Manual", 1);
+        }
+
         private void FastFall()
         {
-            if (player.slideButtonNew && !player.TreatPlayerAsSortaGrounded() && player.motor.velocity.y <= 0f && MovementPlusPlugin.canFastFall && MovementPlusPlugin.fastFallEnabled.Value)
+            if (player.slideButtonNew && !player.TreatPlayerAsSortaGrounded() && player.motor.velocity.y <= 0f && MovementPlusPlugin.canFastFall && ConfigSettings.FastFall.Enabled.Value)
             {
-                player.motor.SetVelocityYOneTime(Mathf.Min(player.motor.velocity.y + MovementPlusPlugin.fastFallAmount.Value, MovementPlusPlugin.fastFallAmount.Value));
+                player.motor.SetVelocityYOneTime(Mathf.Min(player.motor.velocity.y + ConfigSettings.FastFall.Amount.Value, ConfigSettings.FastFall.Amount.Value));
                 player.ringParticles.Emit(1);
                 player.AudioManager.PlaySfxGameplay(global::Reptile.SfxCollectionID.GenericMovementSfx, global::Reptile.AudioClipID.singleBoost, player.playerOneShotAudioSource, 0f);
                 MovementPlusPlugin.canFastFall = false;
@@ -250,82 +141,174 @@ namespace MovementPlus
 
         private void BoostChanges()
         {
-            if (player.ability == player.grindAbility)
+            if (hasGooned)
             {
-                if (player.grindAbility.posOnLine <= 0.1 && player.abilityTimer <= 0.1f && player.boostButtonHeld)
-                {
-                    if (!MovementPlusPlugin.railGoonEnabled.Value)
-                    {
-                        player.normalBoostSpeed = defaultBoostSpeed;
-                    }
-                    else
-                    {
-                        player.normalBoostSpeed = Mathf.Max(defaultBoostSpeed, player.GetForwardSpeed() * MovementPlusPlugin.railGoonStrength.Value);
-                    }
-                }
-                else
-                {
-                    player.normalBoostSpeed = Mathf.Max(defaultBoostSpeed, player.GetForwardSpeed());
-                }
+                ApplyRailGoon();
+                return;
             }
 
-            else if (player.ability == player.wallrunAbility)
+            if (player.ability == player.wallrunAbility)
             {
                 return;
             }
 
-            else if (player.ability != player.boostAbility)
+            if (player.ability == player.grindAbility)
             {
-                player.normalBoostSpeed = Mathf.Max(defaultBoostSpeed, player.GetForwardSpeed() + 0.2f);
+                //HandleGrindAbility();
+                return;
             }
+
+            if (player.ability != player.boostAbility)
+            {
+                player.normalBoostSpeed = Mathf.Max(defaultBoostSpeed, AverageForwardSpeed());
+            }
+        }
+
+        private void ApplyRailGoon()
+        {
+            if (!railGoonAppllied && ConfigSettings.RailGoon.Enabled.Value)
+            {
+                player.grindAbility.speed = LosslessClamp(Mathf.Max(AverageForwardSpeed(), defaultBoostSpeed), ConfigSettings.RailGoon.Amount.Value, ConfigSettings.RailGoon.Cap.Value);
+                railGoonAppllied = true;
+            }
+        }
+
+        private void HandleGrindAbility()
+        {
+            player.normalBoostSpeed = LosslessClamp(player.normalBoostSpeed, ConfigSettings.BoostGeneral.RailAmount.Value * Core.dt, ConfigSettings.BoostGeneral.RailCap.Value);
         }
 
         private void VertChanges()
         {
-
-            if (player.ability == player.vertAbility)
+            if (player.ability != player.vertAbility)
             {
-                return;
-            }
-            if (MovementPlusPlugin.vertEnabled.Value)
-            {
-                var x = player.GetTotalSpeed() + MovementPlusPlugin.vertBottomExitSpeed.Value;
-                x = Mathf.Min(x, MovementPlusPlugin.vertBottomExitSpeedCap.Value);
-                player.vertMaxSpeed = Mathf.Max(defaultVertMaxSpeed, player.GetTotalSpeed());
-                player.vertBottomExitSpeed = x;
-            }
-            if (MovementPlusPlugin.vertJumpEnabled.Value)
-            {
-                var x = Mathf.Max(defaultVertTopJumpSpeed, player.GetTotalSpeed() * MovementPlusPlugin.vertJumpStrength.Value);
-                x = Mathf.Min(vertJumpCap.Value, x);
-                player.vertTopJumpSpeed = x;
+                HandleVertAbility();
             }
         }
 
-
-        private void SaveSpeed()
+        private void HandleVertAbility()
         {
-            if (player.ability == player.grindAbility || player.ability == player.handplantAbility)
+            if (ConfigSettings.VertGeneral.Enabled.Value)
             {
-                return;
+                UpdateVertBottomExitSpeed();
             }
-            noAbilitySpeed = player.GetForwardSpeed();
+
+            if (ConfigSettings.VertGeneral.JumpEnabled.Value)
+            {
+                UpdateVertTopJumpSpeed();
+            }
         }
 
-
-        private void TimeInAir()
+        private void UpdateVertBottomExitSpeed()
         {
-            if (player.TreatPlayerAsSortaGrounded())
+            float playerTotal = Mathf.Max(player.GetTotalSpeed(), AverageTotalSpeed());
+            var x = playerTotal + ConfigSettings.VertGeneral.ExitSpeed.Value;
+            x = Mathf.Min(x, ConfigSettings.VertGeneral.ExitSpeedCap.Value);
+            player.vertMaxSpeed = Mathf.Max(defaultVertMaxSpeed, player.GetTotalSpeed());
+            player.vertBottomExitSpeed = x;
+        }
+
+        private void UpdateVertTopJumpSpeed()
+        {
+            float playerTotal = Mathf.Max(player.GetTotalSpeed(), AverageTotalSpeed());
+            var x = Mathf.Max(defaultVertTopJumpSpeed, playerTotal * ConfigSettings.VertGeneral.JumpStrength.Value);
+            x = Mathf.Min(ConfigSettings.VertGeneral.JumpCap.Value, x);
+            player.vertTopJumpSpeed = x;
+        }
+
+        private void JustJumpedFromRail()
+        {
+            if (jumpedFromRail)
             {
-                timeInAir = 0f;
+                player.SetForwardSpeed(Mathf.Max(AverageForwardSpeed(), player.GetForwardSpeed()));
+                jumpedFromRailTimer -= Core.dt;
+            }
+            if (jumpedFromRailTimer <= 0f)
+            {
+                jumpedFromRail = false;
+            }
+        }
+
+        private void SpeedLimit()
+        {
+            if (player.GetForwardSpeed() >= ConfigSettings.Misc.speedLimit.Value && player.ability != player.grindAbility && player.ability != player.wallrunAbility && ConfigSettings.Misc.speedLimit.Value > 0f)
+            {
+                float newSpeed = player.GetForwardSpeed() - ConfigSettings.Misc.speedLimitAmount.Value * Core.dt;
+                player.SetForwardSpeed(newSpeed);
+            }
+        }
+
+        private void LogSpeed(float time)
+        {
+            forwardSpeeds.Enqueue(player.GetForwardSpeed());
+            totalSpeeds.Enqueue(player.GetTotalSpeed());
+            if (averageSpeedTimer >= time)
+            {
+                forwardSpeeds.Dequeue();
+                totalSpeeds.Dequeue();
             }
             else
             {
-                timeInAir += Core.dt;
+                averageSpeedTimer += Core.dt;
             }
         }
 
-    public static float remap(float val, float in1, float in2, float out1, float out2)
+        public static float AverageForwardSpeed()
+        {
+            float sum = 0f;
+            foreach (float forwardSpeed in forwardSpeeds)
+            {
+                sum += forwardSpeed;
+            }
+            return sum / forwardSpeeds.Count;
+        }
+
+        public static float AverageTotalSpeed()
+        {
+            float sum = 0f;
+            foreach (float totalSpeed in totalSpeeds)
+            {
+                sum += totalSpeed;
+            }
+            return sum / totalSpeeds.Count;
+        }
+
+        private void LogForward(float time)
+        {
+            forwardDirs.Enqueue(player.tf.forward);
+            if (averageForwardTimer >= time)
+            {
+                forwardDirs.Dequeue();
+            }
+            else
+            {
+                averageForwardTimer += Core.dt;
+            }
+        }
+
+        public static Vector3 AverageForwardDir()
+        {
+            Vector3 sum = Vector3.zero;
+            foreach (Vector3 forwardDir in forwardDirs)
+            {
+                sum += forwardDir;
+            }
+            return sum / forwardDirs.Count;
+        }
+
+        private void SaveSpeed()
+        {
+            noAbilitySpeed = (player.ability == player.grindAbility || player.ability == player.handplantAbility)
+            ? Mathf.Max(noAbilitySpeed, player.grindAbility.speed)
+            : player.GetForwardSpeed();
+        }
+
+        private void TimeInAir()
+        {
+            timeInAir = player.TreatPlayerAsSortaGrounded() ? 0f : timeInAir + Core.dt;
+        }
+
+        public static float Remap(float val, float in1, float in2, float out1, float out2)
         {
             return out1 + (val - in1) * (out2 - out1) / (in2 - in1);
         }
@@ -335,5 +318,19 @@ namespace MovementPlus
             return (((a + b) * x) / (b + x) + c);
         }
 
+        public static float LosslessClamp(float input, float toAdd, float cap)
+        {
+            float output = input;
+            float potentialOutput = output + toAdd;
+            if (cap < 0)
+            {
+                return potentialOutput;
+            }
+
+            output = Mathf.Min(potentialOutput, cap);
+            output = Mathf.Max(output, input);
+
+            return output;
+        }
     }
 }

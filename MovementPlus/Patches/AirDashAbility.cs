@@ -1,13 +1,12 @@
 ﻿using HarmonyLib;
 using Reptile;
-using System.Runtime.Remoting.Messaging;
-using Unity;
 using UnityEngine;
 
 namespace MovementPlus.Patches
 {
     internal static class AirDashAbilityPatch
     {
+        private static readonly MyConfig ConfigSettings = MovementPlusPlugin.ConfigSettings;
 
         [HarmonyPatch(typeof(AirDashAbility), nameof(AirDashAbility.OnStartAbility))]
         [HarmonyPrefix]
@@ -41,7 +40,7 @@ namespace MovementPlus.Patches
             if (__instance.p.GetFlatVelocity().magnitude > __instance.airDashStartSpeed)
             {
                 float num = Vector3.Dot(vector, __instance.p.GetFlatVelocity().normalized);
-                num = MovementPlusPlugin.remap(num, -1f, 1f, MovementPlusPlugin.airDashSpeed.Value, 1f);
+                num = MovementPlusPlugin.Remap(num, -1f, 1f, ConfigSettings.Misc.airDashStrength.Value, 1f);
                 if (num < 0f)
                 {
                     num = 0f;

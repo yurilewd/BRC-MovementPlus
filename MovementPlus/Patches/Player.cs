@@ -1,16 +1,17 @@
 ﻿using HarmonyLib;
+using MovementPlus.NewAbility;
 using Reptile;
-using System.Runtime.CompilerServices;
-using Unity;
 using UnityEngine;
-using MovementPlus;
 
 namespace MovementPlus.Patches
 {
     internal static class PlayerPatch
     {
-        private static bool tooFast;
+        private static readonly MyConfig ConfigSettings = MovementPlusPlugin.ConfigSettings;
 
+        public static ButtslapAbility buttslapAbility;
+
+        private static bool tooFast;
 
         [HarmonyPatch(typeof(Player), nameof(Player.Init))]
         [HarmonyPostfix]
@@ -22,12 +23,15 @@ namespace MovementPlus.Patches
                 MovementPlusPlugin.defaultBoostSpeed = __instance.normalBoostSpeed;
                 MovementPlusPlugin.defaultVertMaxSpeed = __instance.vertMaxSpeed;
                 MovementPlusPlugin.defaultVertTopJumpSpeed = __instance.vertTopJumpSpeed;
-                __instance.motor.maxFallSpeed = MovementPlusPlugin.maxFallSpeed.Value;
+                MovementPlusPlugin.defaultJumpSpeed = __instance.specialAirAbility.jumpSpeed;
+                __instance.motor.maxFallSpeed = ConfigSettings.Misc.maxFallSpeed.Value;
 
                 __instance.wallrunAbility.lastSpeed = MovementPlusPlugin.savedLastSpeed;
                 __instance.vertBottomExitSpeedThreshold = 0f;
 
-                if (MovementPlusPlugin.collisionChangeEnabled.Value)
+                buttslapAbility = new ButtslapAbility(__instance);
+
+                if (ConfigSettings.Misc.collisionChangeEnabled.Value)
                 {
                     var bodies = __instance.GetComponentsInChildren<Rigidbody>();
                     foreach (var body in bodies)
@@ -38,19 +42,21 @@ namespace MovementPlus.Patches
             }
         }
 
+        
         [HarmonyPatch(typeof(Player), nameof(Player.FixedUpdatePlayer))]
         [HarmonyPostfix]
         private static void Player_FixedUpdatePlayer_Postfix(Player __instance)
         {
-
-           if (MovementPlusPlugin.timeInAir >= 1.5f)
+            if (MovementPlusPlugin.timeInAir >= 1.5f)
             {
                 tooFast = true;
             }
-           else
+            else
             {
                 tooFast = false;
             }
+
+            buttslapAbility.Activation();
         }
 
 
@@ -160,14 +166,14 @@ namespace MovementPlus.Patches
                 {
                     __instance.ActivateAbility(__instance.slideAbility);
                 }
-                else
+                else if (!ConfigSettings.ComboGeneral.NoAbilityEnabled.Value)
                 {
-                    //__instance.LandCombo();
+                    __instance.LandCombo();
                 }
             }
-            else if (__instance.ability == __instance.boostAbility)
+            else if (__instance.ability == __instance.boostAbility && !ConfigSettings.ComboGeneral.BoostEnabled.Value)
             {
-                //__instance.LandCombo();
+                __instance.LandCombo();
             }
             __instance.audioManager.PlaySfxGameplay(__instance.moveStyle, AudioClipID.land, __instance.playerOneShotAudioSource, 0f);
             __instance.CreateCircleDustEffect(__instance.motor.groundNormalVisual * -1f);
@@ -237,13 +243,19 @@ namespace MovementPlus.Patches
                         __instance.ActivateAbility(__instance.slideAbility);
                         return false;
                     }
-                    if (__instance.IsComboing())
+                    if (__instance.IsComboing() && ConfigSettings.ComboGeneral.NoAbilityEnabled.Value && !__instance.boosting)
                     {
-                        __instance.DoComboTimeOut(Core.dt * MovementPlusPlugin.noAbilityComboTimeout.Value);
+                        float num = Mathf.Min(__instance.GetForwardSpeed() / __instance.boostSpeed, 0.95f);
+                        __instance.DoComboTimeOut(Mathf.Max(Core.dt * (1f - num), Core.dt / 2f) * ConfigSettings.ComboGeneral.NoAbilityTimeout.Value);
+                        //__instance.DoComboTimeOut(Core.dt * MovementPlusPlugin.noAbilityComboTimeout.Value);
+                    }
+                    else
+                    {
+                        __instance.LandCombo();
                     }
                 }
             }
             return false;
         }
-    }    
+    }
 }

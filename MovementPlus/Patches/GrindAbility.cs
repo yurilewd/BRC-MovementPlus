@@ -1,48 +1,93 @@
 ﻿using HarmonyLib;
 using Reptile;
-using System.Runtime.CompilerServices;
 using System;
-using Unity;
 using UnityEngine;
-using System.Reflection;
-using BepInEx;
 
 namespace MovementPlus.Patches
 {
-    public class GrindAbilityPatch
+    internal static class GrindAbilityPatch
     {
-
-
-        public static float defaultCornerBoost;
-        public static float minCornerBoost = 3f;
-        public static float maxCornerSpeed = 11f;
-
-
-
+        private static readonly MyConfig ConfigSettings = MovementPlusPlugin.ConfigSettings;
 
         [HarmonyPatch(typeof(GrindAbility), nameof(GrindAbility.Init))]
-        [HarmonyPostfix]
-        private static void GrindAbility_Init_Postfix(GrindAbility __instance)
+        [HarmonyPrefix]
+        private static void GrindAbility_Init_Prefix(GrindAbility __instance)
         {
-            __instance.grindDeccAboveNormal = MovementPlusPlugin.railDecc.Value;
-            __instance.grindDeccBelowNormal = MovementPlusPlugin.railDecc.Value;
-            defaultCornerBoost = __instance.cornerBoost;
+            __instance.grindDeccAboveNormal = ConfigSettings.RailGeneral.Decc.Value;
         }
 
         [HarmonyPatch(typeof(GrindAbility), nameof(GrindAbility.OnStartAbility))]
-        [HarmonyPostfix]
-        private static void GrindAbility_OnStartAbility_Postfix(GrindAbility __instance)
+        [HarmonyPrefix]
+        private static void GrindAbility_OnStartAbility_Prefix(GrindAbility __instance)
         {
-            __instance.reTrickFail = false;
             __instance.trickTimer = 0f;
-            __instance.speed = Mathf.Max(MovementPlusPlugin.noAbilitySpeed, __instance.p.maxMoveSpeed);
-            __instance.speedTarget = Mathf.Max(MovementPlusPlugin.noAbilitySpeed, __instance.p.maxMoveSpeed);
+        }
+
+        [HarmonyPatch(typeof(GrindAbility), nameof(GrindAbility.UpdateSpeed))]
+        [HarmonyPrefix]
+        private static bool GrindAbility_UpdateSpeed_Prefix(GrindAbility __instance)
+        {
+            if (__instance.p.abilityTimer <= 0.025f && !__instance.p.isJumping)
+            {
+                float newSpeed = MovementPlusPlugin.AverageForwardSpeed();
+
+                newSpeed = Mathf.Max(newSpeed, __instance.speedTarget);
+                __instance.p.normalBoostSpeed = newSpeed;
+
+                __instance.speed = Mathf.Max(newSpeed, __instance.speedTarget);
+            }
+            if (__instance.speed < __instance.speedTarget)
+            {
+                __instance.speed = Mathf.Min(__instance.speedTarget, __instance.speed + __instance.grindAcc * Core.dt);
+            }
+            else if (__instance.speed > __instance.speedTarget)
+            {
+                __instance.speed = Mathf.Max(__instance.speedTarget, __instance.speed - ((__instance.speed >= __instance.p.stats.grindSpeed) ? __instance.grindDeccAboveNormal : __instance.grindDeccBelowNormal) * Core.dt);
+            }
+            if (__instance.p.boosting)
+            {
+                float newSpeed = Mathf.Max(MovementPlusPlugin.AverageForwardSpeed(), __instance.speed);
+                __instance.speed = MovementPlusPlugin.LosslessClamp(newSpeed, ConfigSettings.BoostGeneral.RailAmount.Value * Core.dt, ConfigSettings.BoostGeneral.RailCap.Value);
+                //__instance.speed = __instance.p.boostSpeed;
+                //__instance.speed = (__instance.speedTarget = Mathf.Max(__instance.p.boostSpeed, MovementPlusPlugin.defaultBoostSpeed));
+                //return false;
+            }
+            if (__instance.softCornerBoost)
+            {
+                __instance.speedTarget = Mathf.Max(MovementPlusPlugin.AverageForwardSpeed(), __instance.p.GetForwardSpeed());
+                if (__instance.timeSinceLastNode > 1f)
+                {
+                    __instance.softCornerBoost = false;
+                    //return false;
+                }
+            }
+            else
+            {
+                if (__instance.p.AirBraking() && !__instance.p.isAI)
+                {
+                    __instance.braking = true;
+                    __instance.speedTarget = __instance.p.stats.grindSpeed * 0.35f;
+                    //return false;;
+                }
+                __instance.braking = false;
+                __instance.speedTarget = __instance.p.stats.grindSpeed;
+            }
+            return false;
         }
 
         [HarmonyPatch(typeof(GrindAbility), nameof(GrindAbility.FixedUpdateAbility))]
         [HarmonyPrefix]
-        public static bool GrindAbility_FixedUpdateAbility_Prefix(GrindAbility __instance)
+        private static bool GrindAbility_FixedUpdateAbility_Prefix(GrindAbility __instance)
         {
+            float currentPos = __instance.grindLine.GetAbsoluteLinePos(__instance.p.tf.position, __instance.p.dir);
+            if (__instance.p.abilityTimer >= 0.1f)
+            {
+                MovementPlusPlugin.hasGooned = false;
+            }
+            if (currentPos <= 1.5f && __instance.p.boosting && __instance.p.abilityTimer <= 0.1f && !MovementPlusPlugin.hasGooned)
+            {
+                MovementPlusPlugin.hasGooned = true;
+            }
             if (__instance.inRetour)
             {
                 if (__instance.p.GetAnimTime() < 1f)
@@ -56,7 +101,7 @@ namespace MovementPlus.Patches
             int num = 3;
             for (int i = 0; i < num; i++)
             {
-                flag |= (curAnim == __instance.grindTrickHoldHashes[i] || curAnim == __instance.grindBoostTrickHoldHashes[i]);
+                flag |= curAnim == __instance.grindTrickHoldHashes[i] || curAnim == __instance.grindBoostTrickHoldHashes[i];
             }
             __instance.timeSinceLastNode += Core.dt;
             __instance.p.SetDustEmission(0);
@@ -72,11 +117,11 @@ namespace MovementPlus.Patches
             vector = __instance.grindLine.SnapPosToLine(vector);
             vector += (__instance.nextNode - vector).normalized * __instance.speed * Core.dt;
             __instance.posOnLine = (__instance.justFollowNodes ? __instance.grindLine.GetRelativePosOnLine(vector, __instance.nextNode) : __instance.grindLine.GetRelativePosOnLine(vector, vector2));
-            float num2 = __instance.justFollowNodes ? __instance.grindLine.GetAbsoluteLinePos(vector, __instance.nextNode) : __instance.grindLine.GetAbsoluteLinePos(vector, vector2);
+            float num2 = (__instance.justFollowNodes ? __instance.grindLine.GetAbsoluteLinePos(vector, __instance.nextNode) : __instance.grindLine.GetAbsoluteLinePos(vector, vector2));
             if (__instance.posOnLine >= 1f)
             {
                 __instance.timeSinceLastNode = 0f;
-                float d = __instance.posOnLine * __instance.grindLine.Length() - __instance.grindLine.Length();
+                float num3 = __instance.posOnLine * __instance.grindLine.Length() - __instance.grindLine.Length();
                 if (__instance.nextNode.IsEndpoint)
                 {
                     if (__instance.nextNode.retour)
@@ -103,8 +148,8 @@ namespace MovementPlus.Patches
                         }
                         __instance.p.motor.SetPositionTeleport(vector + Vector3.up * __instance.p.motor.GetCapsule().height * Mathf.Clamp(__instance.p.tf.up.y, -1f, 0f));
                         __instance.normal = Vector3.up;
-                        Vector3 a = __instance.p.FlattenRotationHard();
-                        __instance.p.SetVelocity(a * __instance.speed);
+                        Vector3 vector3 = __instance.p.FlattenRotationHard();
+                        __instance.p.SetVelocity(vector3 * __instance.speed);
                         if (__instance.p.boosting)
                         {
                             __instance.p.ActivateAbility(__instance.p.boostAbility);
@@ -118,11 +163,11 @@ namespace MovementPlus.Patches
                 }
                 else
                 {
-                    GrindLine grindLine = __instance.justFollowNodes ? __instance.grindLine.GetNextLine(vector2, __instance.nextNode) : __instance.grindLine.GetNextLine(vector2, null);
+                    GrindLine grindLine = (__instance.justFollowNodes ? __instance.grindLine.GetNextLine(vector2, __instance.nextNode) : __instance.grindLine.GetNextLine(vector2, null));
                     Vector3 normalized = (grindLine.GetOtherNode(__instance.nextNode) - __instance.nextNode).normalized;
                     __instance.RewardTilting(right, normalized);
                     vector2 = normalized;
-                    vector = __instance.nextNode.position + d * normalized;
+                    vector = __instance.nextNode.position + num3 * normalized;
                     if (__instance.grindLine.sfxCollection != grindLine.sfxCollection && grindLine.sfxCollection != SfxCollectionID.NONE)
                     {
                         __instance.p.AudioManager.PlaySfxGameplayLooping(grindLine.sfxCollection, AudioClipID.grindLoop, __instance.p.playerGrindLoopAudioSource, 0f, 0f);
@@ -141,49 +186,49 @@ namespace MovementPlus.Patches
             {
                 __instance.normal = __instance.grindLine.GetNormalAtPos(vector);
             }
-            float num3 = __instance.grindLine.Length();
-            float num4 = Mathf.Min(num3 * 0.5f, 1.5f);
-            Vector3 forward = Vector3.forward;
-            if (!__instance.nextNode.IsEndpoint && num2 >= num3 - num4)
+            float num4 = __instance.grindLine.Length();
+            float num5 = Mathf.Min(num4 * 0.5f, 1.5f);
+            Vector3 vector4 = Vector3.forward;
+            if (!__instance.nextNode.IsEndpoint && num2 >= num4 - num5)
             {
                 Vector3 normalized2 = ((__instance.justFollowNodes ? __instance.grindLine.GetNextLine(vector2, __instance.nextNode) : __instance.grindLine.GetNextLine(vector2, null)).GetOtherNode(__instance.nextNode) - __instance.nextNode).normalized;
                 Vector3 normalized3 = (__instance.nextNode - vector).normalized;
-                Vector3 vector3 = Vector3.Slerp(normalized3, normalized2, 0.5f);
-                if (num2 >= num3)
+                Vector3 vector5 = Vector3.Slerp(normalized3, normalized2, 0.5f);
+                if (num2 >= num4)
                 {
-                    forward = vector3;
+                    vector4 = vector5;
                 }
                 else
                 {
-                    forward = Vector3.Slerp(normalized3, vector3, 1f - (num3 - num2) / num4);
+                    vector4 = Vector3.Slerp(normalized3, vector5, 1f - (num4 - num2) / num5);
                 }
                 __instance.preGrindDir = normalized3;
                 if (!__instance.p.smoothRotation)
                 {
-                    __instance.p.SetRotation(forward.normalized, __instance.normal);
+                    __instance.p.SetRotation(vector4.normalized, __instance.normal);
                 }
             }
-            else if (__instance.preGrindDir != Vector3.zero && num2 <= num4)
+            else if (__instance.preGrindDir != Vector3.zero && num2 <= num5)
             {
                 Vector3 normalized4 = (__instance.nextNode - vector).normalized;
-                Vector3 vector4 = Vector3.Slerp(normalized4, __instance.preGrindDir, 0.5f);
+                Vector3 vector6 = Vector3.Slerp(normalized4, __instance.preGrindDir, 0.5f);
                 if (num2 <= 0f)
                 {
-                    forward = vector4;
+                    vector4 = vector6;
                 }
                 else
                 {
-                    forward = Vector3.Slerp(vector4, normalized4, num2 / num4);
+                    vector4 = Vector3.Slerp(vector6, normalized4, num2 / num5);
                 }
                 if (!__instance.p.smoothRotation)
                 {
-                    __instance.p.SetRotation(forward.normalized, __instance.normal);
+                    __instance.p.SetRotation(vector4.normalized, __instance.normal);
                 }
             }
             else if (__instance.p.smoothRotation)
             {
-                forward = __instance.nextNode - vector;
-                __instance.preGrindDir = forward;
+                vector4 = __instance.nextNode - vector;
+                __instance.preGrindDir = vector4;
             }
             else
             {
@@ -191,27 +236,31 @@ namespace MovementPlus.Patches
             }
             if (__instance.p.smoothRotation)
             {
-                Quaternion rotation = Quaternion.LookRotation(forward, __instance.normal);
-                __instance.p.SetRotation(rotation);
+                Quaternion quaternion = Quaternion.LookRotation(vector4, __instance.normal);
+                __instance.p.SetRotation(quaternion);
             }
             __instance.customVelocity = (vector - __instance.p.tf.position) * 60f;
             __instance.p.lastElevationForSlideBoost = vector.y;
-            if (__instance.p.jumpButtonNew)
+            if (__instance.p.jumpButtonNew || __instance.p.isAI)
             {
-                
-                float num5 = Vector3.Dot(__instance.p.tf.up, Vector3.up);
-                __instance.JumpOut(__instance.grindLine.isPole || (num5 > -0.25f && num5 < 0.35f));
+                float num6 = Vector3.Dot(__instance.p.tf.up, Vector3.up);
+                __instance.JumpOut(__instance.grindLine.isPole || (num6 > -0.25f && num6 < 0.35f));
                 return false;
             }
             __instance.p.SetVisualRotLocalZ(__instance.grindTilt.x * -30f);
             return false;
         }
 
-
         [HarmonyPatch(typeof(GrindAbility), nameof(GrindAbility.JumpOut))]
         [HarmonyPrefix]
-        public static bool GrindAbility_JumpOut_Prefix(bool flipOut, GrindAbility __instance)
+        private static bool GrindAbility_JumpOut_Prefix(bool flipOut, GrindAbility __instance)
         {
+            float slope = __instance.customVelocity.y / __instance.customVelocity.magnitude;
+            slope = (float)Math.Round(slope, 2);
+
+            float orientation = Vector3.Dot(__instance.p.tf.up, Vector3.up);
+           
+
             __instance.p.AudioManager.PlayVoice(ref __instance.p.currentVoicePriority, __instance.p.character, AudioClipID.VoiceJump, __instance.p.playerGameplayVoicesAudioSource, VoicePriority.MOVEMENT);
             __instance.p.timeSinceLastJump = 0f;
             __instance.p.isJumping = true;
@@ -228,27 +277,39 @@ namespace MovementPlus.Patches
                 Vector3 normalized = Vector3.ProjectOnPlane(up, Vector3.up).normalized;
                 __instance.p.SetRotHard(Quaternion.LookRotation(normalized));
                 float num = __instance.p.jumpSpeed * 0.35f;
-                float d = Mathf.Max(__instance.p.maxMoveSpeed * 0.7f, __instance.p.GetTotalSpeed(), MovementPlusPlugin.noAbilitySpeed);
-                __instance.p.SetVelocity(num * Vector3.up + normalized * d);
+                float num2 = __instance.p.abilityTimer <= ConfigSettings.RailFrameboost.Grace.Value ? MovementPlusPlugin.noAbilitySpeed : __instance.p.maxMoveSpeed;
+                __instance.p.SetVelocity(num * Vector3.up + normalized * num2);
                 __instance.p.ActivateAbility(__instance.p.flipOutJumpAbility);
             }
             else
             {
                 __instance.p.PlayAnim(__instance.jumpHash, false, false, -1f);
-                Vector3 a = __instance.p.FlattenRotationHard();
-                float num2 = 1f + Mathf.Clamp01(__instance.p.dir.y) * 0.5f;
+                Vector3 vector = __instance.p.FlattenRotationHard();
+                float num3 = 1f + Mathf.Clamp01(0f) * 0.5f;
                 if (!__instance.lastPath.upwardsGrindJumpAllowed || !__instance.grindLine.upwardsGrindJump)
                 {
-                    num2 = 1f;
+                    num3 = 1f;
                 }
-                float num3 = __instance.p.jumpSpeed + __instance.p.bonusJumpSpeedGrind;
-                float num = (Vector3.Dot(up, Vector3.up) > -0.1f) ? (num3 * num2) : (-__instance.p.jumpSpeed * 0.5f);
-                float d = Mathf.Min(__instance.speed, __instance.p.boostSpeed);
-                if (__instance.p.abilityTimer <= MovementPlusPlugin.railFrameboostGrace.Value && MovementPlusPlugin.railFrameboostEnabled.Value)
+                float num4 = __instance.p.jumpSpeed + __instance.p.bonusJumpSpeedGrind;
+                float num = ((Vector3.Dot(up, Vector3.up) > -0.1f) ? (num4 * num3) : (-__instance.p.jumpSpeed * 0.5f)); // Jump Height
+                float num2 = Mathf.Min(__instance.speed, __instance.p.boostSpeed); // Jump Speed
+
+                if (orientation >= 0.35f && !flipOut && ConfigSettings.RailSlope.Enabled.Value)
                 {
-                    d = Mathf.Max(__instance.speed, __instance.p.GetForwardSpeed() + MovementPlusPlugin.railFrameboostAmount.Value);
-                    __instance.p.DoTrick(Player.TrickType.AIR, "Frameboost", 0);
-                }    
+                    float bonusJump = slope * ConfigSettings.RailSlope.SlopeJumpAmount.Value;
+                    float bonusSpeed = slope * -ConfigSettings.RailSlope.SlopeSpeedAmount.Value;
+
+                    bonusJump *= MovementPlusPlugin.AverageTotalSpeed() / 10f;
+                    bonusSpeed *= MovementPlusPlugin.AverageTotalSpeed() / 10f;
+
+                    bonusSpeed = Mathf.Clamp(bonusSpeed, ConfigSettings.RailSlope.SlopeSpeedMin.Value, ConfigSettings.RailSlope.SlopeSpeedMax.Value);
+                    bonusJump = Mathf.Clamp(bonusJump, ConfigSettings.RailSlope.SlopeJumpMin.Value, bonusJump);
+
+                    num = Mathf.Clamp(num + bonusJump, ConfigSettings.RailSlope.SlopeJumpMin.Value, ConfigSettings.RailSlope.SlopeJumpMax.Value);
+                    num2 = (bonusSpeed > 0f) ? MovementPlusPlugin.LosslessClamp(num2, bonusSpeed, ConfigSettings.RailSlope.SlopeSpeedCap.Value) : num2 + bonusSpeed;
+
+                }
+
                 if (__instance.p.boosting)
                 {
                     __instance.p.ActivateAbility(__instance.p.boostAbility);
@@ -264,28 +325,26 @@ namespace MovementPlus.Patches
                 {
                     __instance.p.StopCurrentAbility();
                 }
-
-                if (MovementPlusPlugin.railSlopeJumpChangeEnabled.Value)
+                if (__instance.p.abilityTimer <= ConfigSettings.RailFrameboost.Grace.Value && ConfigSettings.RailFrameboost.Enabled.Value)
                 {
-                    var jumpMath = MovementPlusPlugin.TableCurve(0f, 32f, 7.5f, __instance.p.GetForwardSpeed());
-                    var speedMath = MovementPlusPlugin.TableCurve(5f, 32f, 7.5f, __instance.p.GetForwardSpeed());
-
-                    float jumpAddYValue = (Vector3.Dot(Vector3.up, __instance.p.motor.velocity.normalized) * (jumpMath)) * MovementPlusPlugin.railUpSlopeJumpStrength.Value;
-                    float jumpAddForwardValue = (Vector3.Dot(Vector3.up, __instance.p.motor.velocity.normalized) * (-speedMath) * MovementPlusPlugin.railDownSlopeSpeedStrength.Value);
-                    d += Mathf.Max(jumpAddForwardValue, 0f);
-                    num = Mathf.Max(jumpAddYValue, num);
+                    float newSpeed = MovementPlusPlugin.LosslessClamp(num2, ConfigSettings.RailFrameboost.Amount.Value, ConfigSettings.RailFrameboost.Cap.Value);
+                    num2 = newSpeed;
+                    __instance.p.DoTrick(Player.TrickType.GRIND, "Frameboost", 0);
                 }
-                __instance.p.SetVelocity(num * Vector3.up + a * d);
+                __instance.p.SetVelocity(num * Vector3.up + vector * num2);
             }
             __instance.p.ForceUnground(true);
+            MovementPlusPlugin.jumpedFromRail = true;
+            MovementPlusPlugin.jumpedFromRailTimer = 0.025f;
             return false;
         }
 
-
         [HarmonyPatch(typeof(GrindAbility), nameof(GrindAbility.RewardTilting))]
         [HarmonyPrefix]
-        public static bool GrindAbility_RewardTilting_Prefix(Vector3 rightDir, Vector3 nextLineDir, GrindAbility __instance)
+        private static bool GrindAbility_RewardTilting_Prefix(Vector3 rightDir, Vector3 nextLineDir, GrindAbility __instance)
         {
+            rightDir = Vector3.Cross(__instance.nextNode.transform.up, __instance.preGrindDir);
+
             if (!__instance.grindLine.cornerBoost)
             {
                 return false;
@@ -313,71 +372,34 @@ namespace MovementPlus.Patches
             {
                 __instance.softCornerBoost = false;
             }
-            bool flag = Mathf.Abs(num) > 0.3f;
+            bool flag = Mathf.Abs(num) > 0.1f;
             if (side != Side.NONE && side == side2)
             {
                 if (flag && __instance.lastPath.hardCornerBoostsAllowed)
                 {
                     __instance.p.StartScreenShake(ScreenShakeType.LIGHT, 0.2f, false);
-                    __instance.p.AudioManager.PlaySfxGameplay(global::Reptile.SfxCollectionID.GenericMovementSfx, global::Reptile.AudioClipID.singleBoost, __instance.p.playerOneShotAudioSource, 0f);
+                    __instance.p.AudioManager.PlaySfxGameplay(SfxCollectionID.GenericMovementSfx, AudioClipID.singleBoost, __instance.p.playerOneShotAudioSource, 0f);
                     __instance.p.ringParticles.Emit(1);
-                    if (__instance.p.GetTotalSpeed() + MovementPlusPlugin.railHardAmount.Value > MovementPlusPlugin.railHardCap.Value)
-                    {
-                        __instance.p.HardCornerGrindLine(__instance.nextNode);
-                        return false;
-                    }
-                    __instance.speed = Mathf.Max(__instance.p.stats.grindSpeed + __instance.cornerBoost, __instance.p.GetTotalSpeed() + MovementPlusPlugin.railHardAmount.Value);
+                    float speedValue = MovementPlusPlugin.LosslessClamp(__instance.speed, ConfigSettings.RailGeneral.HardAmount.Value, ConfigSettings.RailGeneral.HardCap.Value);
+                    __instance.speed = speedValue;
                     __instance.p.HardCornerGrindLine(__instance.nextNode);
                     return false;
                 }
                 if (__instance.lastPath.softCornerBoostsAllowed)
                 {
-                    __instance.softCornerBoost = false;
+                    __instance.softCornerBoost = true;
+                    __instance.p.DoTrick(Player.TrickType.SOFT_CORNER, "Corner", 0);
                 }
             }
             return false;
         }
 
-        [HarmonyPatch(typeof(GrindAbility), nameof(GrindAbility.UpdateSpeed))]
-        [HarmonyPrefix]
-        public static bool GrindAbility_UpdateSpeed_Prefix(GrindAbility __instance)
+        [HarmonyPatch(typeof(GrindAbility), nameof(GrindAbility.OnStopAbility))]
+        [HarmonyPostfix]
+        private static void GrindAbility_OnStopAbility_Postfix()
         {
-            if (__instance.speed < __instance.speedTarget)
-            {
-                __instance.speed = Mathf.Min(__instance.speedTarget, __instance.speed + __instance.grindAcc * Core.dt);
-            }
-            else if (__instance.speed > __instance.speedTarget)
-            {
-                __instance.speed = Mathf.Max(__instance.speedTarget, __instance.speed - ((__instance.speed >= __instance.p.stats.grindSpeed) ? __instance.grindDeccAboveNormal : __instance.grindDeccBelowNormal) * Core.dt);
-            }
-            if (__instance.p.boosting)
-            {
-                if (__instance.speed <= __instance.p.boostSpeed)
-                {
-                    __instance.speed = (__instance.speedTarget = __instance.p.boostSpeed);
-                }
-                return false;
-            }
-            if (__instance.softCornerBoost)
-            {
-                if (__instance.timeSinceLastNode > 1f)
-                {
-                    __instance.softCornerBoost = false;
-                    return false;
-                }
-            }
-            else
-            {
-                if (__instance.p.AirBraking() && !__instance.p.isAI)
-                {
-                    __instance.braking = true;
-                    __instance.speedTarget = __instance.p.stats.grindSpeed * 0.35f;
-                    return false;
-                }
-                __instance.braking = false;
-                __instance.speedTarget = Mathf.Max(__instance.p.stats.grindSpeed, __instance.speed);
-            }
-            return false;
+            MovementPlusPlugin.hasGooned = false;
+            MovementPlusPlugin.railGoonAppllied = false;
         }
     }
 }

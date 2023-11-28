@@ -1,18 +1,24 @@
 ﻿using HarmonyLib;
 using Reptile;
-using Unity;
 using UnityEngine;
 
 namespace MovementPlus.Patches
 {
     internal static class SlideAbilityPatch
     {
+        private static readonly MyConfig ConfigSettings = MovementPlusPlugin.ConfigSettings;
+
         [HarmonyPatch(typeof(SlideAbility), nameof(SlideAbility.FixedUpdateAbility))]
         [HarmonyPostfix]
         private static void SlideAbility_FixedUpdateAbility_Postfix(SlideAbility __instance)
         {
-            __instance.superSpeed = Mathf.Max(MovementPlusPlugin.superSlideSpeed.Value, __instance.p.GetForwardSpeed() + MovementPlusPlugin.superSlideIncrease.Value);
-            __instance.slopeSlideSpeed = Mathf.Max(MovementPlusPlugin.superSlideSpeed.Value, __instance.p.GetForwardSpeed() + MovementPlusPlugin.superSlideIncrease.Value);
+            float speed = Mathf.Max(ConfigSettings.SuperSlide.Speed.Value, __instance.p.GetForwardSpeed());
+            if (ConfigSettings.SuperSlide.Enabled.Value)
+            {
+                speed = MovementPlusPlugin.LosslessClamp(speed, ConfigSettings.SuperSlide.Amount.Value, ConfigSettings.SuperSlide.Cap.Value);
+            }
+            __instance.superSpeed = speed;
+            __instance.slopeSlideSpeed = speed;
         }
     }
 }

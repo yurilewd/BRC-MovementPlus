@@ -1,25 +1,34 @@
 ﻿using HarmonyLib;
 using Reptile;
-using Unity;
 using UnityEngine;
 
 namespace MovementPlus.Patches
 {
     internal static class SpecialAirAbilityPatch
     {
+        private static readonly MyConfig ConfigSettings = MovementPlusPlugin.ConfigSettings;
+
+
 
         [HarmonyPatch(typeof(SpecialAirAbility), nameof(SpecialAirAbility.OnStartAbility))]
         [HarmonyPrefix]
         private static void SpecialAirAbility_OnStartAbility_Prefix(SpecialAirAbility __instance)
         {
-            if (MovementPlusPlugin.superTrickEnabled.Value)
+            if (ConfigSettings.SuperTrickJump.Enabled.Value)
             {
-                var speedmath = MovementPlusPlugin.TableCurve(9f, 32f, -1.4f, __instance.p.GetForwardSpeed()) * MovementPlusPlugin.superTrickStrength.Value;
+                var num = Mathf.Max(__instance.p.GetForwardSpeed() - ConfigSettings.SuperTrickJump.Threshold.Value, 0f);
 
-                __instance.jumpSpeed = (Mathf.Max(11.5f, speedmath));
-
+                __instance.jumpSpeed = MovementPlusPlugin.LosslessClamp(__instance.jumpSpeed, num * ConfigSettings.SuperTrickJump.Amount.Value, ConfigSettings.SuperTrickJump.Cap.Value);
                 __instance.duration = 0.3f;
-            }    
+
+            }
+        }
+
+        [HarmonyPatch(typeof(SpecialAirAbility), nameof(SpecialAirAbility.OnStopAbility))]
+        [HarmonyPostfix]
+        private static void SpecialAirAbility_OnStopAbility_Prefix(SpecialAirAbility __instance)
+        {
+            __instance.jumpSpeed = MovementPlusPlugin.defaultJumpSpeed;
         }
     }
 }

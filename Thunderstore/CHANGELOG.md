@@ -1,3 +1,35 @@
+## 2.0.0
+Full rework of rails and grinding mechanics
+
+Grinding and wallriding no longer steals your speed when starting one, in certain instances this can still happen but should be far less often to the point of almost never
+
+Rail goons have been reworked and can be done on almost any rail corner, to compensate for this they have been weakened but can also be stacked, they now also work with a flat amount instead of a strength
+
+Rail hard corners have been reworked, these are no longer tied to framerate and can be done on far more corners
+
+Rails no longer hold you tight when trying to jump while upside down
+
+Rail goons can be fully disabled, previously there were some cases where they would still sneak in even though disabled
+
+Many mechanics now use the players average speed over a period of time instead of their current speed, this should make many mechanics feel smoother
+
+A new mechanic know as a buttslap, to perform one you need to be performing a ground trick while in the air and during this ground trick period you can jump in mid air, this restores some of your combo meter and gives you a small boost of speed along with the jump, this can be performed multiple times in a given period
+
+New mechanic known as a ledge climb cancel, to perform one you need to jump while doing the ledge climb animation, if done correctly you will cancel the animation your speed will be returned plus a little bit of bonus speed as well
+
+A pretty large refactor of the code, most things were tried to be kept almost the same but it was a lot changed so various things might be slightly different
+
+A soft rework to the super trick jump, it should behave almost the same but the math behind it is very different, this allows you to customize it far more inside the config
+
+Many changes to the default config, most changes are meant to peel the game a little away from instant bursts of speed and instead have a more deliberate and smooth growth of speed
+
+Reworked config, many more things added to the config and many existing things were slightly changed or just renamed, this will likely break existing configs and they will need to be redone if you edited them
+
+Rail slope jumps have been refactored and should behave far more reliably
+
+probably other stuff that I just forgot about, a ton was changed lol
+
+
 ## 1.1.2
 The Vert bugs now have a cap and config values for it
 

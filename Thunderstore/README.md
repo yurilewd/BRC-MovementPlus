@@ -8,6 +8,9 @@
 DontSetMySpeedPLS - using this won't crash the game, but it does break multiple mechanics for both mods.
 
 
+## More Vanilla?
+
+
 ## New Features
 
 - Frameboost
@@ -57,4 +60,4 @@ DontSetMySpeedPLS - using this won't crash the game, but it does break multiple 
  - RackBox
  - FracturedStar
  - LIMBSMITH
- -Lazy Duchess
+ - Lazy Duchess

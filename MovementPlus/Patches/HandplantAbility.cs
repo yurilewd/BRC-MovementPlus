@@ -1,15 +1,14 @@
 ﻿using HarmonyLib;
 using Reptile;
-using System.Runtime.CompilerServices;
-using Unity;
-using UnityEngine;
-using MovementPlus;
 using System;
+using UnityEngine;
 
 namespace MovementPlus.Patches
 {
     internal static class HandplantAbilityPatch
     {
+        private static readonly MyConfig ConfigSettings = MovementPlusPlugin.ConfigSettings;
+
         [HarmonyPatch(typeof(HandplantAbility), nameof(HandplantAbility.FixedUpdateAbility))]
         [HarmonyPrefix]
         private static bool HandplantAbility_FixedUpdateAbility_Prefix(HandplantAbility __instance)
@@ -116,7 +115,7 @@ namespace MovementPlus.Patches
                 __instance.p.SetVelocity(vector);
                 __instance.p.CreateHighJumpDustEffect(Vector3.up);
                 __instance.p.PlayAnim(Animator.StringToHash("jump"), false, false, -1f);
-                if (__instance.p.abilityTimer <= 0.12f + MovementPlusPlugin.railFrameboostGrace.Value)
+                if (__instance.p.abilityTimer <= 0.12f + ConfigSettings.RailFrameboost.Grace.Value)
                 {
                     __instance.p.SetForwardSpeed(Mathf.Max(MovementPlusPlugin.noAbilitySpeed, __instance.p.GetForwardSpeed()));
                 }
