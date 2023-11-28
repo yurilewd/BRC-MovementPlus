@@ -9,6 +9,7 @@ DontSetMySpeedPLS - using this won't crash the game, but it does break multiple 
 
 
 ## More Vanilla?
+If you want something closer to vanilla you can use this VanillaPlus config I made [here](https://github.com/yurilewd/BRC-MovementPlus/blob/main/Thunderstore/VanillaPlusConfig/com.yuril.MovementPlus.cfg), to use this file you need to click the "Download raw file" button and then save that into your \BepInEx\config folder, if it asks you to overwrite an existing file you should do so. 
 
 
 ## New Features
