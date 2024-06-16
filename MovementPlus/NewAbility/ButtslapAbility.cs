@@ -15,6 +15,7 @@ namespace MovementPlus.NewAbility
         private static readonly MyConfig ConfigSettings = MovementPlusPlugin.ConfigSettings;
 
         private float buttslapTimer;
+		private int buttslapAmount;
 
 
         public override void Init()
@@ -41,6 +42,7 @@ namespace MovementPlus.NewAbility
             else
             {
                 this.buttslapTimer = ConfigSettings.Buttslap.Timer.Value;
+				this.buttslapAmount = 0;
             }
             this.PerformButtslap();
             
@@ -98,7 +100,8 @@ namespace MovementPlus.NewAbility
             this.p.DoComboTimeOut(ConfigSettings.Buttslap.ComboAmount.Value);
 
             // Perform trick
-            this.p.DoTrick(0, "Buttslap");
+			this.buttslapAmount++;
+            this.p.DoTrick(0, $"Buttslap x{this.buttslapAmount}");
         }
     }
 }
